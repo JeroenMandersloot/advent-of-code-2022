@@ -6,7 +6,10 @@ fn get_calories() -> Vec<u32> {
         .split("\n\n")
         .map(|elf| elf
             .split("\n")
-            .map(|i| i.parse::<u32>().unwrap()).sum())
+            .map(|i| i
+                .parse::<u32>()
+                .unwrap())
+            .sum())
         .collect::<Vec<u32>>()
 }
 
