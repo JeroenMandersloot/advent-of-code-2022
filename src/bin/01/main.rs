@@ -1,34 +1,34 @@
 use std::fs;
 
-fn get_calories() -> Vec<i32> {
-    let file_path = "inputs/01/a.txt";
-    let contents = fs::read_to_string(file_path).unwrap();
-
-    let mut cache = Vec::new();
-    for elf in contents.split("\n\n") {
-        let calories: i32 = elf.split("\n").into_iter().map(|i| i.parse::<i32>().unwrap()).sum();
-        cache.push(calories);
-    }
-
-    cache
+fn get_calories() -> Vec<u32> {
+    fs::read_to_string("inputs/01/part1.txt")
+        .unwrap()
+        .split("\n\n")
+        .into_iter()
+        .map(|elf| elf
+            .split("\n")
+            .into_iter()
+            .map(|i| i.parse::<u32>().unwrap()).sum())
+        .collect::<Vec<u32>>()
 }
 
 #[allow(dead_code)]
-fn a() {
+fn part1() {
     let result = get_calories().into_iter().max().unwrap();
     println!("{}", result);
 }
 
 
 #[allow(dead_code)]
-fn b() {
+fn part2() {
     let mut calories = get_calories();
     calories.sort();
-    let result: i32 = calories[calories.len() - 3..].into_iter().sum();
+    calories.reverse();
+    let result: u32 = calories[..3].into_iter().sum();
     println!("{:?}", result);
 }
 
 fn main() {
-    a();
-    b();
+    part1();
+    part2();
 }
