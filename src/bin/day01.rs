@@ -14,22 +14,20 @@ fn get_calories() -> Vec<u32> {
 }
 
 #[allow(dead_code)]
-fn part1() {
-    let result = get_calories().into_iter().max().unwrap();
-    println!("{}", result);
+fn part1() -> u32 {
+    *get_calories().iter().max().unwrap()
 }
 
 
 #[allow(dead_code)]
-fn part2() {
+fn part2() -> u32 {
     let mut calories = get_calories();
     calories.sort();
     calories.reverse();
-    let result: u32 = calories[..3].into_iter().sum();
-    println!("{}", result);
+    calories[..3].iter().sum::<u32>()
 }
 
 fn main() {
-    part1();
-    part2();
+    println!("{}", part1());
+    println!("{}", part2());
 }
