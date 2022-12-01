@@ -4,10 +4,8 @@ fn get_calories() -> Vec<u32> {
     fs::read_to_string("inputs/01/part1.txt")
         .unwrap()
         .split("\n\n")
-        .into_iter()
         .map(|elf| elf
             .split("\n")
-            .into_iter()
             .map(|i| i.parse::<u32>().unwrap()).sum())
         .collect::<Vec<u32>>()
 }
@@ -25,7 +23,7 @@ fn part2() {
     calories.sort();
     calories.reverse();
     let result: u32 = calories[..3].into_iter().sum();
-    println!("{:?}", result);
+    println!("{}", result);
 }
 
 fn main() {
