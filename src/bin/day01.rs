@@ -10,13 +10,11 @@ fn get_calories() -> Vec<u32> {
         .collect::<Vec<u32>>()
 }
 
-#[allow(dead_code)]
 fn part1() -> u32 {
     *get_calories().iter().max().unwrap()
 }
 
 
-#[allow(dead_code)]
 fn part2() -> u32 {
     let mut calories = get_calories();
     calories.sort();
