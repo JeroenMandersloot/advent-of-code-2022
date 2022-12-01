@@ -1,5 +1,4 @@
 target/
 .idea/
 Cargo.lock
-inputs/
 .DS_Store

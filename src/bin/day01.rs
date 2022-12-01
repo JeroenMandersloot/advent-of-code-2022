@@ -1,8 +1,5 @@
-use std::fs;
-
 fn get_calories() -> Vec<u32> {
-    fs::read_to_string("inputs/01/part1.txt")
-        .unwrap()
+    aoc::io::get_input(1)
         .split("\n\n")
         .map(|elf| elf
             .split("\n")
@@ -24,7 +21,7 @@ fn part2() -> u32 {
     let mut calories = get_calories();
     calories.sort();
     calories.reverse();
-    calories[..3].iter().sum::<u32>()
+    calories[..3].iter().sum()
 }
 
 fn main() {
