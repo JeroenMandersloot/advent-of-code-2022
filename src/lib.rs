@@ -25,4 +25,10 @@ pub mod io {
             Err(e) => { panic!("Could not write input to file: {}", e); }
         }
     }
+
+    pub fn get_example(day: u8) -> String {
+        let fpath = format!("inputs/example{:02}.txt", day);
+        let path = Path::new(&fpath);
+        fs::read_to_string(path).unwrap()
+    }
 }
