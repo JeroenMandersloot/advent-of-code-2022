@@ -1,7 +1,7 @@
-use std::collections::HashMap;
-use std::iter::Map;
+// Q: How can you create a constant ``HashMap``?
+// Q: Does Rust have a ``Map`` interface?
 
-#[derive(PartialEq, Eq, Hash, Clone)]
+#[derive(PartialEq, Eq, Clone)]
 enum Choice {
     ROCK,
     PAPER,
