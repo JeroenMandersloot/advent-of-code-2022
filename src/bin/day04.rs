@@ -20,24 +20,20 @@ fn parse_assignment(assignment: &str) -> Assignment {
     Assignment(x.parse().unwrap(), y.parse().unwrap())
 }
 
-fn part1() -> u32 {
+fn get_pairs() -> Vec<(Assignment, Assignment)> {
     aoc::io::get_input(4)
         .split("\n")
         .map(|line| line.split_once(",").unwrap())
-        .map(|(a, b)| {
-            let s = parse_assignment(a);
-            let t = parse_assignment(b);
-            (s.dominates(&t) | t.dominates(&s)) as u32
-        })
-        .sum()
+        .map(|(a, b)| (parse_assignment(a), parse_assignment(b)))
+        .collect()
+}
+
+fn part1() -> u32 {
+    get_pairs().iter().map(|(a, b)| (a.dominates(&b) | b.dominates(&a)) as u32).sum()
 }
 
 fn part2() -> u32 {
-    aoc::io::get_input(4)
-        .split("\n")
-        .map(|line| line.split_once(",").unwrap())
-        .map(|(a, b)| parse_assignment(a).overlaps(&parse_assignment(b)) as u32)
-        .sum()
+    get_pairs().iter().map(|(a, b)| a.overlaps(&b) as u32).sum()
 }
 
 fn main() {
