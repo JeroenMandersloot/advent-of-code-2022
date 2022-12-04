@@ -36,9 +36,7 @@ fn part2() -> u32 {
     aoc::io::get_input(4)
         .split("\n")
         .map(|line| line.split_once(",").unwrap())
-        .map(|(a, b)|
-            parse_assignment(a).overlaps(&parse_assignment(b)) as u32
-        )
+        .map(|(a, b)| parse_assignment(a).overlaps(&parse_assignment(b)) as u32)
         .sum()
 }
 
