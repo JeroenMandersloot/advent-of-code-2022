@@ -15,12 +15,10 @@ impl Assignment {
     }
 }
 
-
 fn parse_assignment(assignment: &str) -> Assignment {
     let (x, y) = assignment.split_once("-").unwrap();
     Assignment(x.parse().unwrap(), y.parse().unwrap())
 }
-
 
 fn part1() -> u32 {
     aoc::io::get_input(4)
@@ -34,7 +32,6 @@ fn part1() -> u32 {
         .sum()
 }
 
-
 fn part2() -> u32 {
     aoc::io::get_input(4)
         .split("\n")
@@ -44,7 +41,6 @@ fn part2() -> u32 {
         )
         .sum()
 }
-
 
 fn main() {
     println!("{}", part1());

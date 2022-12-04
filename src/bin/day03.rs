@@ -5,7 +5,6 @@ use std::collections::HashSet;
 
 const PRIORITIES: &str = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
-
 fn part1() -> u32 {
     aoc::io::get_input(3)
         .split("\n")
@@ -17,7 +16,6 @@ fn part1() -> u32 {
         })
         .sum()
 }
-
 
 fn part2() -> u32 {
     aoc::io::get_input(3)
@@ -33,7 +31,6 @@ fn part2() -> u32 {
         })
         .sum()
 }
-
 
 fn main() {
     println!("{}", part1());
