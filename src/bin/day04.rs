@@ -1,4 +1,5 @@
 // Q: Why do ``Range::min()`` and ``Range::max()`` act upon ``mut self`` instead of ``&self``?
+// Q: Is there any way to ``map`` a known homogeneous ``Tuple``?
 
 struct Assignment(u32, u32);
 
