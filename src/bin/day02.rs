@@ -8,6 +8,7 @@ enum Choice {
     SCISSOR,
 }
 
+
 fn win(opponent: &Choice) -> Choice {
     match opponent {
         Choice::ROCK => Choice::PAPER,
@@ -16,6 +17,7 @@ fn win(opponent: &Choice) -> Choice {
     }
 }
 
+
 fn lose(opponent: &Choice) -> Choice {
     match opponent {
         Choice::ROCK => Choice::SCISSOR,
@@ -23,6 +25,7 @@ fn lose(opponent: &Choice) -> Choice {
         Choice::SCISSOR => Choice::PAPER,
     }
 }
+
 
 fn determine_points(opponent: &Choice, you: &Choice) -> u32 {
     let base = match you {
@@ -41,6 +44,7 @@ fn determine_points(opponent: &Choice, you: &Choice) -> u32 {
         }
     }
 }
+
 
 fn part1() -> u32 {
     aoc::io::get_input(2)
@@ -63,6 +67,7 @@ fn part1() -> u32 {
         }).sum()
 }
 
+
 fn part2() -> u32 {
     aoc::io::get_input(2)
         .split("\n")
@@ -83,6 +88,7 @@ fn part2() -> u32 {
             determine_points(&opponent, &you)
         }).sum()
 }
+
 
 fn main() {
     println!("{}", part1());

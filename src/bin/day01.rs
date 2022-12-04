@@ -10,6 +10,7 @@ fn get_calories() -> Vec<u32> {
         .collect::<Vec<u32>>()
 }
 
+
 fn part1() -> u32 {
     *get_calories().iter().max().unwrap()
 }
@@ -21,6 +22,7 @@ fn part2() -> u32 {
     calories.reverse();
     calories[..3].iter().sum()
 }
+
 
 fn main() {
     println!("{}", part1());
