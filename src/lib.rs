@@ -19,7 +19,7 @@ pub mod io {
             .send()
             .unwrap();
 
-        let contents = response.text().unwrap().trim().to_owned();
+        let contents = response.text().unwrap().trim_end().to_owned();
         match fs::write(path, &contents) {
             Ok(_) => { contents }
             Err(e) => { panic!("Could not write input to file: {}", e); }
