@@ -31,7 +31,7 @@ fn parse_input() -> (Vec<Vec<char>>, Vec<(usize, usize, usize)>) {
     let mut stacks = Vec::new();
     for i in 0..num_stacks {
         stacks.push((0..num_rows)
-            // For stack, get the corresponding create from each row.
+            // For each stack, get the corresponding crate from each row from bottom to top.
             .map(|j| rows[num_rows - j - 1][i])
             // Remove all ``None`` values since that means no crate was present.
             .flatten()
