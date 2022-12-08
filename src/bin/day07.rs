@@ -130,6 +130,14 @@ fn part1() -> u32 {
     arena.nodes.iter().map(|node| arena.size(node.idx)).filter(|size| *size <= 100000).sum()
 }
 
+fn part2() -> u32 {
+    let arena = aap();
+    let used = arena.size(0);
+    let to_free = 30000000 - (70000000 - used);
+    arena.nodes.iter().map(|node| arena.size(node.idx)).filter(|size| *size >= to_free).min().unwrap()
+}
+
 fn main() {
-    println!("{}", part1());
+    println!("{}", part1());  // 1307902
+    println!("{}", part2());  // 7068748
 }
