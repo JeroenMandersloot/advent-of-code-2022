@@ -8,22 +8,25 @@ struct Arena<T> {
     nodes: Vec<Node<T>>,
 }
 
-impl<T> Arena<T> {
+impl<T> Arena<T> {  // TODO: don't make generic, T = Directory is good enough.
     fn new() -> Self {
         Self {
             nodes: Vec::new()
         }
     }
 
-    fn get(&self, idx: usize) -> &Node<T> {
-        return &self.nodes[idx]
+    // TODO: implement .root()?
+    // TODO: implement .into_iter() to iterate over idx?
+
+    fn get(&self, idx: usize) -> &Node<T> {  // TODO: return option
+        &self.nodes[idx]
     }
 
     fn get_mut(&mut self, idx: usize) -> &mut Node<T> {
-        return &mut self.nodes[idx]
+        &mut self.nodes[idx]
     }
 
-    fn node(&mut self, data: T) -> usize {
+    fn create_node(&mut self, data: T) -> usize {
         let idx = self.nodes.len();
         self.nodes.push(Node {
             idx,
@@ -64,7 +67,7 @@ impl<T> Node<T> {
 
 struct Directory {
     name: String,
-    files: Vec<(String, u32)>
+    files: Vec<(String, u32)>  // TODO: create separate File struct?
 }
 
 impl Directory {
@@ -80,36 +83,35 @@ impl Directory {
     }
 }
 
-fn aap() -> Arena<Directory> {
+fn aap() -> Arena<Directory> {  // TODO: naming
     let input = aoc::io::get_input(7);
     let mut filesystem = Arena::new();
-    let root = filesystem.node(Directory::new(""));
-    let mut cwd = root;
+    let mut cwd = filesystem.create_node(Directory::new("/"));
     for line in input.lines() {
         if line.starts_with("dir ") {
             let mut directory = Directory {
                 name: String::from(&line[4..]),
                 files: Vec::new(),
             };
-            let node = filesystem.node(directory);
+            let node = filesystem.create_node(directory);
             filesystem.get_mut(cwd).children.push(node);
+            // We can safely use ``node`` and ``cwd`` again despite the move
+            // since both are primitive types that implement the ``Copy`` trait.
             filesystem.get_mut(node).parent = Some(cwd);
+        } else if line == "$ cd .." {
+            cwd = filesystem.get(cwd).parent.unwrap();
         }
         else if line.starts_with("$ cd ") {
             let dirname = &line[5..];
-            if dirname == ".." {
-                cwd = filesystem.get(cwd).parent.unwrap();
-            } else {
-                let a = filesystem
-                    .get(cwd)
-                    .children
-                    .iter()
-                    .filter(|idx| filesystem.get(**idx).data.name == String::from(dirname))
-                    .next();
+            let a = filesystem
+                .get(cwd)
+                .children
+                .iter()
+                .filter(|idx| filesystem.get(**idx).data.name == String::from(dirname))
+                .next();
 
-                if let Some(node) = a {
-                    cwd = *node;
-                }
+            if let Some(node) = a {
+                cwd = *node;
             }
         }
         else if line == "$ ls" {
@@ -118,7 +120,6 @@ fn aap() -> Arena<Directory> {
         else {
             let (size, filename) = line.split_once(" ").unwrap();
             filesystem.get_mut(cwd).data.files.push((String::from(filename), size.parse().unwrap()));
-            println!("{}: {} ({})", filesystem.get(cwd).data.name, filename, size);
         }
     }
 
