@@ -54,71 +54,29 @@ fn get_scenic_score(chart: &Vec<Vec<u8>>, x: usize, y: usize) -> u32 {
 fn part1() -> u32 {
     let chart = get_chart();
     let (width, height) = get_dimensions(&chart);
-
-    let mut mask: Vec<Vec<bool>> = vec![vec![false; width]; height];
-
+    let mut num_visible = 0;
     for x in 0..width {
         for y in 0..height {
-            if x == 0 || y == 0 || x == width - 1 || y == height - 1 {
-                mask[y][x] = true;
+            let me = &chart[y][x];
+            let coordinates = get_relevant_coordinates(x, y, width, height);
+            for direction in coordinates {
+                let mut is_visible = true;
+                for (col, row) in direction {
+                    if chart[row][col] >= *me {
+                        is_visible = false;
+                        break;
+                    }
+                }
+
+                if is_visible {
+                    num_visible += 1;
+                    break
+                }
             }
         }
     }
 
-    for x in 0..width {
-        let mut tallest: u8 = 0;
-        for y in 0..height {
-            let c = &chart[y][x];
-            if *c > tallest {
-                mask[y][x] = true;
-            }
-            tallest = max(tallest, *c);
-        }
-    }
-
-    for x in 0..width {
-        let mut tallest: u8 = 0;
-        for y in (0..height).rev() {
-            let c = &chart[y][x];
-            if *c > tallest {
-                mask[y][x] = true;
-            }
-            tallest = max(tallest, *c);
-        }
-    }
-
-    for y in 0..height {
-        let mut tallest: u8 = 0;
-        for x in 0..width {
-            let c = &chart[y][x];
-            if *c > tallest {
-                mask[y][x] = true;
-            }
-            tallest = max(tallest, *c);
-        }
-    }
-
-    for y in 0..height {
-        let mut tallest: u8 = 0;
-        for x in (0..width).rev() {
-            let c = &chart[y][x];
-            if *c > tallest {
-                mask[y][x] = true;
-            }
-            tallest = max(tallest, *c);
-        }
-    }
-
-    let mut count = 0;
-    for x in 0..width {
-        for y in 0..height {
-            if mask[y][x] {
-                count += 1;
-            }
-        }
-    }
-
-    count
+    num_visible
 }
 
 fn part2() -> u32 {
@@ -134,6 +92,6 @@ fn part2() -> u32 {
 }
 
 fn main() {
-    println!("{}", part1());
-    println!("{}", part2());
+    println!("{}", part1());  // 1825
+    println!("{}", part2());  // 235200
 }
