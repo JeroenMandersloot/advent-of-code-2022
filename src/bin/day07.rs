@@ -2,72 +2,56 @@
 //   - https://rust-unofficial.github.io/too-many-lists
 //   - https://rust-leipzig.github.io/architecture/2016/12/20/idiomatic-trees-in-rust/
 
-use std::collections::HashMap;
-
-struct Arena<T> {
-    nodes: Vec<Node<T>>,
+// Implement an `Arena` struct to hold our file system nodes such that all
+// directories, files, etc. have the same lifetime.
+struct FileSystem {
+    nodes: Vec<Node>,
 }
 
-impl<T> Arena<T> {  // TODO: don't make generic, T = Directory is good enough.
+impl FileSystem {
     fn new() -> Self {
         Self {
             nodes: Vec::new()
         }
     }
 
-    // TODO: implement .root()?
-    // TODO: implement .into_iter() to iterate over idx?
-
-    fn get(&self, idx: usize) -> &Node<T> {  // TODO: return option
-        &self.nodes[idx]
-    }
-
-    fn get_mut(&mut self, idx: usize) -> &mut Node<T> {
-        &mut self.nodes[idx]
-    }
-
-    fn create_node(&mut self, data: T) -> usize {
+    fn create_node(&mut self, directory: Directory) -> usize {
         let idx = self.nodes.len();
         self.nodes.push(Node {
             idx,
-            data,
+            directory,
             parent: None,
-            children: Vec::new()
+            children: Vec::new(),
         });
         idx
     }
-}
 
-impl Arena<Directory> {
+    fn get(&self, idx: usize) -> &Node {
+        &self.nodes[idx]
+    }
+
+    fn get_mut(&mut self, idx: usize) -> &mut Node {
+        &mut self.nodes[idx]
+    }
+
     fn size(&self, idx: usize) -> u32 {
         let root = &self.nodes[idx];
-        let a = root.data.size();
-        let b: u32 = root.children.iter().map(|idx| self.size(*idx)).sum();
-        a + b
+        let own_size = root.directory.size();
+        let nested_size: u32 = root.children.iter().map(|idx| self.size(*idx)).sum();
+        own_size + nested_size
     }
 }
 
-struct Node<T> {
+struct Node {
     idx: usize,
-    data: T,
+    directory: Directory,
     parent: Option<usize>,
     children: Vec<usize>,
 }
 
-impl<T> Node<T> {
-    fn new(idx: usize, data: T) -> Self {
-        Self {
-            idx,
-            data,
-            parent: None,
-            children: Vec::new(),
-        }
-    }
-}
-
 struct Directory {
     name: String,
-    files: Vec<(String, u32)>  // TODO: create separate File struct?
+    files: Vec<File>,
 }
 
 impl Directory {
@@ -79,63 +63,57 @@ impl Directory {
     }
 
     fn size(&self) -> u32 {
-        self.files.iter().map(|(_, size)| size).sum()
+        self.files.iter().map(|File(_, size)| size).sum()
     }
 }
 
-fn aap() -> Arena<Directory> {  // TODO: naming
+struct File(String, u32);
+
+fn build_file_system() -> FileSystem {
     let input = aoc::io::get_input(7);
-    let mut filesystem = Arena::new();
-    let mut cwd = filesystem.create_node(Directory::new("/"));
+    let mut fs = FileSystem::new();
+    let mut cwd = fs.create_node(Directory::new("/"));
     for line in input.lines() {
         if line.starts_with("dir ") {
-            let mut directory = Directory {
+            let directory = Directory {
                 name: String::from(&line[4..]),
                 files: Vec::new(),
             };
-            let node = filesystem.create_node(directory);
-            filesystem.get_mut(cwd).children.push(node);
+            let node = fs.create_node(directory);
+            fs.get_mut(cwd).children.push(node);
             // We can safely use ``node`` and ``cwd`` again despite the move
             // since both are primitive types that implement the ``Copy`` trait.
-            filesystem.get_mut(node).parent = Some(cwd);
+            fs.get_mut(node).parent = Some(cwd);
         } else if line == "$ cd .." {
-            cwd = filesystem.get(cwd).parent.unwrap();
-        }
-        else if line.starts_with("$ cd ") {
-            let dirname = &line[5..];
-            let a = filesystem
+            cwd = fs.get(cwd).parent.unwrap();
+        } else if line.starts_with("$ cd ") {
+            if let Some(node) = fs
                 .get(cwd)
                 .children
                 .iter()
-                .filter(|idx| filesystem.get(**idx).data.name == String::from(dirname))
-                .next();
-
-            if let Some(node) = a {
-                cwd = *node;
-            }
-        }
-        else if line == "$ ls" {
+                .filter(|idx| fs.get(**idx).directory.name == String::from(&line[5..]))
+                .next() { cwd = *node; }
+        } else if line == "$ ls" {
             // Do nothing.
-        }
-        else {
+        } else {
             let (size, filename) = line.split_once(" ").unwrap();
-            filesystem.get_mut(cwd).data.files.push((String::from(filename), size.parse().unwrap()));
+            fs.get_mut(cwd).directory.files.push(File(String::from(filename), size.parse().unwrap()));
         }
     }
 
-    filesystem
+    fs
 }
 
 fn part1() -> u32 {
-    let arena = aap();
-    arena.nodes.iter().map(|node| arena.size(node.idx)).filter(|size| *size <= 100000).sum()
+    let fs = build_file_system();
+    fs.nodes.iter().map(|node| fs.size(node.idx)).filter(|size| *size <= 100000).sum()
 }
 
 fn part2() -> u32 {
-    let arena = aap();
-    let used = arena.size(0);
+    let fs = build_file_system();
+    let used = fs.size(0);
     let to_free = 30000000 - (70000000 - used);
-    arena.nodes.iter().map(|node| arena.size(node.idx)).filter(|size| *size >= to_free).min().unwrap()
+    fs.nodes.iter().map(|node| fs.size(node.idx)).filter(|size| *size >= to_free).min().unwrap()
 }
 
 fn main() {
