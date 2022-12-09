@@ -51,9 +51,6 @@ fn solve(num_knots: usize) -> usize {
             knots[0] = new_head;
             for tail in knots.iter_mut().skip(1) {
                 let new_tail = move_tail(&tail, &new_head);
-                if *tail == new_tail {
-                    break;
-                }
                 head = *tail;
                 new_head = new_tail;
                 *tail = new_tail
