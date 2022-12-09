@@ -1,36 +1,33 @@
-use std::cmp::min;
 use std::collections::HashSet;
 
 type Pos = (i32, i32);
 
-fn move_head(head: &Pos, direction: &char) -> Pos {
+fn move_head(head: &Pos, direction: &str) -> Pos {
     match direction {
-        'U' => (head.0, head.1 + 1),
-        'R' => (head.0 + 1, head.1),
-        'D' => (head.0, head.1 - 1),
-        'L' => (head.0 - 1, head.1),
+        "U" => (head.0, head.1 + 1),
+        "R" => (head.0 + 1, head.1),
+        "D" => (head.0, head.1 - 1),
+        "L" => (head.0 - 1, head.1),
         _ => panic!("{}", format!("Invalid direction: {}", direction))
     }
 }
 
+fn get_delta(delta: i32) -> i32 {
+    match delta {
+        c if c > 0 => 1,
+        c if c < 0 => -1,
+        _ => 0,
+    }
+}
+
 fn move_tail(tail: &Pos, head: &Pos) -> Pos {
-    let xdiff = head.0 - tail.0;
-    let ydiff = head.1 - tail.1;
     let (x, y) = *tail;
+    let xdiff = head.0 - x;
+    let ydiff = head.1 - y;
     if xdiff.abs() <= 1 && ydiff.abs() <= 1 {
         (x, y)
     } else {
-        let xcorr = match xdiff {
-            c if c > 0 => 1,
-            c if c < 0 => -1,
-            _ => 0,
-        };
-        let ycorr = match ydiff {
-            c if c > 0 => 1,
-            c if c < 0 => -1,
-            _ => 0,
-        };
-        (x + xcorr, y + ycorr)
+        (x + get_delta(xdiff), y + get_delta(ydiff))
     }
 }
 
@@ -39,26 +36,18 @@ fn solve(num_knots: usize) -> usize {
     let mut history = HashSet::new();
     history.insert((0, 0));
     for line in aoc::io::get_input(9).lines() {
-        let mut chars = line.chars();
-        let direction = chars.next().unwrap();
-        // Skip space
-        chars.next();
-        // Remaining characters make up the number of times to repeat the move.
-        let num = chars.collect::<String>().parse().unwrap();
-        for _ in 0..num {
-            let mut head = knots[0];
-            let mut new_head = move_head(&head, &direction);
-            knots[0] = new_head;
+        let (direction, num_repeats) = line.split_once(" ").unwrap();
+        let n = num_repeats.parse().unwrap();
+        for _ in 0..n {
+            let mut head = move_head(&knots[0], &direction);
+            knots[0] = head;
             for tail in knots.iter_mut().skip(1) {
-                let new_tail = move_tail(&tail, &new_head);
-                head = *tail;
-                new_head = new_tail;
-                *tail = new_tail
+                head = move_tail(&tail, &head);
+                *tail = head
             }
             history.insert(knots[num_knots - 1]);
         }
     }
-
     history.len()
 }
 
