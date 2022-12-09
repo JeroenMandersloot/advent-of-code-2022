@@ -18,19 +18,20 @@ fn move_tail(tail: &Pos, head: &Pos) -> Pos {
     let ydiff = head.1 - tail.1;
     let (x, y) = *tail;
     if xdiff.abs() <= 1 && ydiff.abs() <= 1 {
-        return (x, y);
+        (x, y)
+    } else {
+        let xcorr = match xdiff {
+            c if c > 0 => 1,
+            c if c < 0 => -1,
+            _ => 0,
+        };
+        let ycorr = match ydiff {
+            c if c > 0 => 1,
+            c if c < 0 => -1,
+            _ => 0,
+        };
+        (x + xcorr, y + ycorr)
     }
-    let xcorr = match xdiff {
-        c if c > 0 => 1,
-        c if c < 0 => -1,
-        _ => 0,
-    };
-    let ycorr = match ydiff {
-        c if c > 0 => 1,
-        c if c < 0 => -1,
-        _ => 0,
-    };
-    (x + xcorr, y + ycorr)
 }
 
 fn solve(num_knots: usize) -> usize {
