@@ -1,5 +1,3 @@
-use regex::Regex;
-
 fn parse_input() -> (Vec<Vec<char>>, Vec<(usize, usize, usize)>) {
     let input = aoc::io::get_input(5);
     let (raw_config, raw_steps) = input.split_once("\n\n").unwrap();
@@ -40,58 +38,35 @@ fn parse_input() -> (Vec<Vec<char>>, Vec<(usize, usize, usize)>) {
     }
 
     // Regex pattern with capture groups to extract the relevant values for each step.
-    let pattern = Regex::new(r"move (\d+) from (\d+) to (\d+)").unwrap();
     let mut steps = Vec::new();
     for line in raw_steps.lines() {
-        let captures: Vec<usize> = pattern
-            .captures_iter(line)
-            .next()  // Each line should only yield a single match.
-            .unwrap()
-            .iter()  // Loop over each of the capture groups.
-            .flatten()
-            .skip(1)  // The first group holds the entire match, skip it.
-            .map(|m| m.as_str().parse().unwrap())
-            .collect();
-
-        // Destructure the remaining 3 matched capture groups.
-        if let [num, from, to] = captures[..] {
-            steps.push((num, from - 1, to - 1));
-        }
+        let mut words = line.split(" ");
+        let num: usize = words.nth(1).unwrap().parse().unwrap();
+        let from: usize = words.nth(1).unwrap().parse().unwrap();
+        let to: usize = words.nth(1).unwrap().parse().unwrap();
+        steps.push((num, from - 1, to - 1));
     }
-
     (stacks, steps)
 }
 
-fn part1() -> String {
+fn solve(one_by_one: bool) -> String {
+    let mut buffer = vec![' '; 100_000_000];
     let (mut stacks, steps) = parse_input();
     for (num, from, to) in steps {
-        // For each crate that needs to be moved...
-        for _ in 0..num {
-            // ...pick the top crate from the stack where it should be moved from...
-            let block = stacks[from].pop().unwrap();
-            // ...and place it on top of the stack where it needs to be moved to.
-            stacks[to].push(block);
+        let from_size = stacks[from].len();
+        let buffer = &mut buffer[0..num];  // Shadow
+        buffer.copy_from_slice(&stacks[from][from_size - num..from_size]);
+        stacks[from].truncate(from_size - num);
+        if one_by_one {
+            buffer.reverse();
         }
+        stacks[to].extend(buffer.iter());
     }
     // Find the crate at the top of each stack and join them into a single String.
     stacks.iter().map(|t| t.last()).flatten().collect()
 }
-
-fn part2() -> String {
-    let (mut stacks, steps) = parse_input();
-    for (num, from, to) in steps {
-        let num_remaining = &stacks[from].len() - num;
-        // Pick up all crates that need to be moved at once...
-        let mut blocks: Vec<_> = stacks[from].drain(num_remaining..).collect();
-        // ...and place them on top of the stack they should be moved to.
-        stacks[to].append( &mut blocks);
-    }
-    // Find the crate at the top of each stack and join them into a single String.
-    stacks.iter().map(|t| t.last()).flatten().collect()
-}
-
 
 fn main() {
-    println!("{}", part1());
-    println!("{}", part2());
+    println!("{}", solve(true));  // CFFHVVHNC
+    println!("{}", solve(false));  // FSZWBPTBG
 }

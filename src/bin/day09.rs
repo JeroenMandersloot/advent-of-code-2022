@@ -31,11 +31,11 @@ fn move_tail(tail: &Pos, head: &Pos) -> Pos {
     }
 }
 
-fn solve(num_knots: usize) -> usize {
+fn solve(input: &str, num_knots: usize) -> usize {
     let mut knots = vec![(0, 0); num_knots];
     let mut history = HashSet::new();
     history.insert((0, 0));
-    for line in aoc::io::get_input(9).lines() {
+    for line in input.lines() {
         let (direction, num_repeats) = line.split_once(" ").unwrap();
         let n = num_repeats.parse().unwrap();
         for _ in 0..n {
@@ -52,6 +52,7 @@ fn solve(num_knots: usize) -> usize {
 }
 
 fn main() {
-    println!("{}", solve(2)); // 6498
-    println!("{}", solve(10)); // 2531
+    let input = aoc::io::get_input(9);
+    println!("{}", solve(&input, 2)); // 6498, 18.64ms
+    println!("{}", solve(&input, 10)); // 2531, 19.31ms
 }
