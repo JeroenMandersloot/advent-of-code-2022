@@ -3,12 +3,8 @@ use std::cmp::max;
 fn get_chart() -> Vec<Vec<u8>> {
     aoc::io::get_input(8)
         .lines()
-        .map(|line| {
-            line
-                .chars()
-                .map(|tree| tree.to_digit(10).unwrap() as u8)
-                .collect()
-        }).collect()
+        .map(|line| line.chars().map(|tree| tree.to_digit(10).unwrap() as u8).collect())
+        .collect()
 }
 
 fn get_dimensions<T>(chart: &Vec<Vec<T>>) -> (usize, usize) {
@@ -18,64 +14,60 @@ fn get_dimensions<T>(chart: &Vec<Vec<T>>) -> (usize, usize) {
 }
 
 fn get_lines_of_sight(
+    chart: &Vec<Vec<u8>>,
     x: usize,
     y: usize,
     width: usize,
     height: usize,
-) -> [Vec<(usize, usize)>; 4] {
-    let north = (0..y).map(|row| (x, row)).rev().collect();
-    let east = (x + 1..width).map(|col| (col, y)).collect();
-    let south = (y + 1..height).map(|row| (x, row)).collect();
-    let west = (0..x).map(|col| (col, y)).rev().collect();
+) -> [Vec<u8>; 4] {
+    let north = (0..y).map(|row| chart[row][x]).rev().collect();
+    let east = (x + 1..width).map(|col| chart[y][col]).collect();
+    let south = (y + 1..height).map(|row| chart[row][x]).collect();
+    let west = (0..x).map(|col| chart[y][col]).rev().collect();
     [north, east, south, west]
 }
 
-fn part1() -> u32 {
+fn part1() -> usize {
     let chart = get_chart();
     let (width, height) = get_dimensions(&chart);
     let mut num_visible = 0;
     for x in 0..width {
         for y in 0..height {
-            let los = get_lines_of_sight(x, y, width, height);
-            for coordinates in los {
-                let mut is_visible = true;
-                for (col, row) in coordinates {
-                    if chart[row][col] >= chart[y][x] {
-                        is_visible = false;
-                        break;
-                    }
-                }
-
-                if is_visible {
-                    num_visible += 1;
-                    break;
-                }
-            }
+            let los = get_lines_of_sight(&chart, x, y, width, height);
+            if los.iter().any(|trees| match trees.iter().max() {
+                Some(c) => c < &chart[y][x],
+                None => true
+            }) { num_visible += 1; }
         }
     }
 
     num_visible
 }
 
-fn part2() -> u32 {
+fn part2() -> usize {
     let chart = get_chart();
     let (width, height) = get_dimensions(&chart);
     let mut best_score = 0;
     for x in 0..width {
         for y in 0..height {
-            let los = get_lines_of_sight(x, y, width, height);
-            let mut scores = [0; 4];
-            for (i, coordinates) in los.iter().enumerate() {
-                for (col, row) in coordinates {
-                    scores[i] += 1;
-                    if chart[*row][*col] >= chart[y][x] {
-                        break;
+            let los = get_lines_of_sight(&chart, x, y, width, height);
+            let score = los
+                .map(|trees| {
+                    let mut num_visible = trees.len();
+                    for (i, tree) in trees.iter().enumerate() {
+                        if *tree >= chart[y][x] {
+                            num_visible = i + 1;
+                            break;
+                        }
                     }
-                }
-            }
-            best_score = max(best_score, scores.iter().product());
+                    num_visible
+                })
+                .iter()
+                .product();
+            best_score = max(best_score, score);
         }
     }
+
     best_score
 }
 
