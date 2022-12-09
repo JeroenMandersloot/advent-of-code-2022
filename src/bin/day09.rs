@@ -1,3 +1,4 @@
+use std::cmp::min;
 use std::collections::HashSet;
 
 type Pos = (i32, i32);
@@ -16,32 +17,20 @@ fn move_tail(tail: &Pos, head: &Pos) -> Pos {
     let xdiff = head.0 - tail.0;
     let ydiff = head.1 - tail.1;
     let (x, y) = *tail;
-    match (xdiff, ydiff) {
-        // 2 squares away in a single direction.
-        (2, 0) => (x + 1, y),
-        (-2, 0) => (x - 1, y),
-        (0, 2) => (x, y + 1),
-        (0, -2) => (x, y - 1),
-
-        // A knight's move away.
-        (1, 2) => (x + 1, y + 1),
-        (2, 1) => (x + 1, y + 1),
-        (2, -1) => (x + 1, y - 1),
-        (1, -2) => (x + 1, y - 1),
-        (-1, -2) => (x - 1, y - 1),
-        (-2, -1) => (x - 1, y - 1),
-        (-2, 1) => (x - 1, y + 1),
-        (-1, 2) => (x - 1, y + 1),
-
-        // Double diagonal away (only relevant for part 2).
-        (2, 2) => (x + 1, y + 1),
-        (2, -2) => (x + 1, y - 1),
-        (-2, 2) => (x - 1, y + 1),
-        (-2, -2) => (x - 1, y - 1),
-
-        // In all other cases the tail doesn't have to move.
-        _ => (x, y)
+    if xdiff.abs() <= 1 && ydiff.abs() <= 1 {
+        return (x, y);
     }
+    let xcorr = match xdiff {
+        c if c > 0 => 1,
+        c if c < 0 => -1,
+        _ => 0,
+    };
+    let ycorr = match ydiff {
+        c if c > 0 => 1,
+        c if c < 0 => -1,
+        _ => 0,
+    };
+    (x + xcorr, y + ycorr)
 }
 
 fn solve(num_knots: usize) -> usize {
@@ -75,15 +64,7 @@ fn solve(num_knots: usize) -> usize {
     history.len()
 }
 
-fn part1() -> usize {
-    solve(2)
-}
-
-fn part2() -> usize {
-    solve(10)
-}
-
 fn main() {
-    println!("{}", part1()); // 6498
-    println!("{}", part2()); // 2531
+    println!("{}", solve(2)); // 6498
+    println!("{}", solve(10)); // 2531
 }
