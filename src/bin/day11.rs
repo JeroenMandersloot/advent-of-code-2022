@@ -94,11 +94,11 @@ fn simulate_round(
     }
 }
 
-fn solve(num_rounds: usize, x: u64) -> usize {
+fn solve(num_rounds: usize, relief: u64) -> usize {
     let mut monkeys = get_monkeys();
     let mut counter = vec![0; monkeys.len()];
     for _ in 0..num_rounds {
-        simulate_round(&mut monkeys, &mut counter, x);
+        simulate_round(&mut monkeys, &mut counter, relief);
     }
     counter.sort();
     counter.reverse();
