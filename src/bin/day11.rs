@@ -65,7 +65,7 @@ fn get_monkeys() -> Vec<Monkey> {
 fn simulate_round(
     monkeys: &mut Vec<Monkey>,
     counter: &mut Vec<usize>,
-    x: u64,
+    relief: u64,
 ) {
     // This fixes the implementation for part 2.
     let lcm: u64 = monkeys.iter().map(|m| m.test).product();
@@ -78,12 +78,11 @@ fn simulate_round(
     // recipient. With ``RefCell.borrow_mut()`` we can make this check at
     // runtime, which allows our code to compile.
     let monkeys: Vec<_> = monkeys.iter_mut().map(RefCell::new).collect();
-    for i in 0..monkeys.len() {
-        let mut monkey = monkeys[i].borrow_mut();
+    for (mut monkey, count) in monkeys.iter().map(RefCell::borrow_mut).zip(counter) {
         while !monkey.items.is_empty() {
-            counter[i] += 1;
+            *count += 1;
             let item = monkey.items.pop_front().unwrap();
-            let new_item = monkey.operation.apply(item % lcm) / x;
+            let new_item = monkey.operation.apply(item % lcm) / relief;
             let recipient_id = if new_item % monkey.test == 0 {
                 monkey.recipient1
             } else {
