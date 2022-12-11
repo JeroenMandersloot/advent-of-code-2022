@@ -1,5 +1,4 @@
 use std::cell::RefCell;
-use std::collections::VecDeque;
 
 use regex::Regex;
 
@@ -30,7 +29,7 @@ impl Operation {
 }
 
 struct Monkey {
-    items: VecDeque<u64>,
+    items: Vec<u64>,
     operation: Operation,
     test: u64,
     recipient1: usize,
@@ -81,7 +80,7 @@ fn simulate_round(
     for (mut monkey, count) in monkeys.iter().map(RefCell::borrow_mut).zip(counter) {
         while !monkey.items.is_empty() {
             *count += 1;
-            let item = monkey.items.pop_front().unwrap();
+            let item = monkey.items.pop().unwrap();
             let new_item = monkey.operation.apply(item % lcm) / relief;
             let recipient_id = if new_item % monkey.test == 0 {
                 monkey.recipient1
@@ -89,7 +88,7 @@ fn simulate_round(
                 monkey.recipient2
             };
             let mut recipient = monkeys[recipient_id].borrow_mut();
-            recipient.items.push_back(new_item);
+            recipient.items.push(new_item);
         }
     }
 }
