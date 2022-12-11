@@ -97,7 +97,7 @@ fn solve(num_rounds: usize, relief: u64) -> usize {
     }
     counter.sort();
     counter.reverse();
-    counter[..2].iter().product::<usize>()
+    counter[..2].iter().product()
 }
 
 fn main() {
