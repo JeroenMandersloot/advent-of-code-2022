@@ -19,7 +19,7 @@ impl Operation {
     }
 
     fn from(operation: &str) -> Self {
-        let (operator, operand) = operation[4..].split_once(" ").unwrap();
+        let (operator, operand) = operation.split_once(" ").unwrap();
         match operand.parse() {
             Ok(o) if operator == "*" => Operation::MULTIPLY(o),
             Ok(o) if operator == "+" => Operation::ADD(o),
@@ -38,8 +38,8 @@ struct Monkey {
 }
 
 static PATTERN: &str = r"Monkey \d+:
-  Starting items: (.+)
-  Operation: new = (.+)
+  Starting items: ((?:\d+(?:, )?)+)
+  Operation: new = old ([+*] (?:old|\d+))
   Test: divisible by (\d+)
     If true: throw to monkey (\d+)
     If false: throw to monkey (\d+)";
