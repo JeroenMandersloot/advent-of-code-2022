@@ -1,45 +1,43 @@
 use std::cell::RefCell;
 use std::collections::VecDeque;
-use regex::{Regex, RegexBuilder};
+
+use regex::Regex;
 
 enum Operation {
-    MULTIPLY(u32),
-    ADD(u32),
+    MULTIPLY(u64),
+    ADD(u64),
     SQUARE,
 }
 
 impl Operation {
-    fn apply(&self, worry: u32) -> u32 {
+    fn apply(&self, worry: u64) -> u64 {
         match self {
             Operation::MULTIPLY(o) => worry * o,
             Operation::ADD(o) => worry + o,
             Operation::SQUARE => worry * worry,
         }
     }
-}
 
-impl From<&str> for Operation {
-    fn from(a: &str) -> Self {
-        let (operator, operand) = a[4..].split_once(" ").unwrap();
+    fn from(operation: &str) -> Self {
+        let (operator, operand) = operation[4..].split_once(" ").unwrap();
         match operand.parse() {
             Ok(o) if operator == "*" => Operation::MULTIPLY(o),
             Ok(o) if operator == "+" => Operation::ADD(o),
             Err(_) => Operation::SQUARE,
-            _ => panic!("Invalid operation: {}", a),
+            _ => panic!("Invalid operation: {}", operation),
         }
     }
 }
 
 struct Monkey {
-    id: usize,
-    items: VecDeque<u32>,
+    items: VecDeque<u64>,
     operation: Operation,
-    test: u32,
-    y: usize,
-    n: usize,
+    test: u64,
+    recipient1: usize,
+    recipient2: usize,
 }
 
-static PATTERN: &str = r"Monkey (\d+):
+static PATTERN: &str = r"Monkey \d+:
   Starting items: (.+)
   Operation: new = (.+)
   Test: divisible by (\d+)
@@ -48,59 +46,67 @@ static PATTERN: &str = r"Monkey (\d+):
 
 fn get_monkeys() -> Vec<Monkey> {
     let input = aoc::io::get_input(11);
-    let pattern = RegexBuilder::new(PATTERN.trim())
-        .multi_line(true)
-        .build()
-        .unwrap();
-    pattern
+    Regex::new(PATTERN)
+        .unwrap()
         .captures_iter(&input)
         .map(|monkey| {
             let mut vars = monkey.iter().map(|c| c.unwrap().as_str()).skip(1);
             Monkey {
-                id: vars.next().unwrap().parse().unwrap(),
                 items: vars.next().unwrap().split(", ").map(|item| item.parse().unwrap()).collect(),
                 operation: Operation::from(vars.next().unwrap()),
                 test: vars.next().unwrap().parse().unwrap(),
-                y: vars.next().unwrap().parse().unwrap(),
-                n: vars.next().unwrap().parse().unwrap(),
+                recipient1: vars.next().unwrap().parse().unwrap(),
+                recipient2: vars.next().unwrap().parse().unwrap(),
             }
         })
         .collect()
 }
 
-fn simulate_round(monkeys: &mut Vec<Monkey>, counter: &mut Vec<usize>) {
-    let mut aapjes: Vec<_> = monkeys.iter_mut().map(RefCell::new).collect();
-    for i in 0..aapjes.len() {
-        let mut monkey = aapjes[i].borrow_mut();
-        // println!("Monkey {}", monkey.id);
+fn simulate_round(
+    monkeys: &mut Vec<Monkey>,
+    counter: &mut Vec<usize>,
+    x: u64,
+) {
+    // This fixes the implementation for part 2.
+    let lcm: u64 = monkeys.iter().map(|m| m.test).product();
+
+    // Shadow ``monkeys`` by wrapping every monkey in a ``RefCell`` so that we
+    // check for multiple mutable references only at runtime rather than compile
+    // time. The compiler cannot know that we will never create two mutable
+    // references (1 for the current monkey, 1 for the recipient) that reference
+    // the same monkey, but we know the current monkey can never also be the
+    // recipient. With ``RefCell.borrow_mut()`` we can make this check at
+    // runtime, which allows our code to compile.
+    let monkeys: Vec<_> = monkeys.iter_mut().map(RefCell::new).collect();
+    for i in 0..monkeys.len() {
+        let mut monkey = monkeys[i].borrow_mut();
         while !monkey.items.is_empty() {
             counter[i] += 1;
             let item = monkey.items.pop_front().unwrap();
-            // println!("  Monkey inspects an item with a worry level of {}", &item);
-            let new_item = monkey.operation.apply(item) / 3;
-            // println!("    Worry level updated to {}", &new_item);
-            let recipient_id = if new_item % monkey.test == 0 { monkey.y } else { monkey.n };
-            // println!("    Item thrown to monkey {}", &recipient_id);
-            let mut recipient = aapjes[recipient_id].borrow_mut();
+            let new_item = monkey.operation.apply(item % lcm) / x;
+            let recipient_id = if new_item % monkey.test == 0 {
+                monkey.recipient1
+            } else {
+                monkey.recipient2
+            };
+            let mut recipient = monkeys[recipient_id].borrow_mut();
             recipient.items.push_back(new_item);
         }
     }
 }
 
-fn part1() -> usize {
+fn solve(num_rounds: usize, x: u64) -> usize {
     let mut monkeys = get_monkeys();
     let mut counter = vec![0; monkeys.len()];
-    for i in 0..20 {
-        simulate_round(&mut monkeys, &mut counter);
-        println!("{}", i);
-        dbg!(&counter);
+    for _ in 0..num_rounds {
+        simulate_round(&mut monkeys, &mut counter, x);
     }
     counter.sort();
     counter.reverse();
-    println!("{}", counter[..2].iter().product::<usize>());
-    monkeys.len()
+    counter[..2].iter().product::<usize>()
 }
 
 fn main() {
-    println!("{}", part1());  // 67830
+    println!("{}", solve(20, 3));  // 67830
+    println!("{}", solve(10_000, 1));  // 15305381442
 }
