@@ -47,7 +47,7 @@ fn create_monkey_from_captures(captures: Captures) -> Monkey {
     let mut vars = captures.iter().map(|c| c.unwrap().as_str()).skip(1);
     Monkey {
         items: vars.next().unwrap().split(", ").map(|item| item.parse().unwrap()).collect(),
-        operation: Operation::from(vars.next()?),
+        operation: Operation::from(vars.next().unwrap()),
         test: vars.next().unwrap().parse().unwrap(),
         recipient1: vars.next().unwrap().parse().unwrap(),
         recipient2: vars.next().unwrap().parse().unwrap(),
@@ -64,6 +64,8 @@ fn get_monkeys() -> Vec<Monkey> {
 }
 
 fn simulate_round(monkeys: &mut Vec<Monkey>, counter: &mut Vec<usize>, relief: u64) {
+    let lcm: u64 = monkeys.iter().map(|m| m.test).product();
+
     // Shadow ``monkeys`` by wrapping every monkey in a ``RefCell`` so that we
     // check for multiple mutable references only at runtime rather than compile
     // time. The compiler cannot know that we will never create two mutable
@@ -72,7 +74,6 @@ fn simulate_round(monkeys: &mut Vec<Monkey>, counter: &mut Vec<usize>, relief: u
     // recipient. With ``RefCell.borrow_mut()`` we can make this check at
     // runtime, which allows our code to compile.
     let monkeys: Vec<_> = monkeys.iter_mut().map(RefCell::new).collect();
-    let lcm: u64 = monkeys.iter().map(|m| m.test).product();
     for (mut monkey, count) in monkeys.iter().map(RefCell::borrow_mut).zip(counter) {
         while !monkey.items.is_empty() {
             *count += 1;
@@ -83,8 +84,7 @@ fn simulate_round(monkeys: &mut Vec<Monkey>, counter: &mut Vec<usize>, relief: u
             } else {
                 monkey.recipient2
             };
-            let mut recipient = monkeys[recipient_id].borrow_mut();
-            recipient.items.push(new_item);
+            monkeys[recipient_id].borrow_mut().items.push(new_item);
         }
     }
 }
