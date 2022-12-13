@@ -1,31 +1,26 @@
-use std::cmp::min;
 use std::collections::{HashMap, HashSet};
-use std::hash::Hash;
-use std::ops::Index;
 
 const LEVELS: &str = "abcdefghijklmnopqrstuvwxyz";
 
-
 struct Graph {
-    nodes: Vec<Node>,
+    nodes: Vec<char>,
     edges: HashMap<usize, Vec<usize>>,
 }
 
 impl Graph {
-    fn find(&self, data: char) -> usize {
-        self.nodes.iter().enumerate().filter(|(idx, node)| node.data == data).next().unwrap().0
+    fn find(&self, value: char) -> usize {
+        self.nodes.iter().enumerate().filter(|(_, node)| **node == value).next().unwrap().0
     }
 
-    fn find_iter(&self, data: char) -> impl Iterator<Item=usize> + '_ {
-        self.nodes.iter().enumerate().filter(move |(idx, node)| node.data == data).map(|(idx, _)| idx)
+    fn find_iter(&self, value: char) -> impl Iterator<Item=usize> + '_ {
+        self.nodes.iter().enumerate().filter(move |(_, node)| **node == value).map(|(idx, _)| idx)
     }
 
     fn compute_distances(&self, start: usize) -> Vec<usize> {
         let num_nodes = self.nodes.len();
         let mut distances = vec![std::usize::MAX; num_nodes];
-        let mut previous: Vec<Option<usize>> = vec![None; num_nodes];
         let mut visited = HashSet::new();
-        let mut queue: Vec<_> = (0..num_nodes).collect();
+        let queue: Vec<_> = (0..num_nodes).collect();
         distances[start] = 0;
         while visited.len() < num_nodes {
             let current = queue
@@ -42,11 +37,9 @@ impl Graph {
                 };
                 if tmp < distances[*neighbour] {
                     distances[*neighbour] = tmp;
-                    previous[*neighbour] = Some(*current);
                 }
             }
         }
-
         distances
     }
 
@@ -59,8 +52,7 @@ impl Graph {
 
         for y in 0..height {
             for x in 0..width {
-                let node = Node::new(*chart.get(y).unwrap().get(x).unwrap());
-                nodes.push(node);
+                nodes.push(*chart.get(y).unwrap().get(x).unwrap());
             }
         }
 
@@ -72,27 +64,20 @@ impl Graph {
                 if y < height - 1 { candidates.push((y + 1) * width + x) }
                 if x > 0 { candidates.push(y * width + x - 1) }
                 if x < width - 1 { candidates.push(y * width + x + 1) }
-                let neighbours = candidates.into_iter().filter(|i| get_level(nodes.get(*i).unwrap().data) >= get_level(nodes.get(idx).unwrap().data) - 1).collect();
+                let min_level = get_level(*nodes.get(idx).unwrap()) - 1;
+                let neighbours = candidates
+                    .into_iter()
+                    .filter(|i| get_level(*nodes.get(*i).unwrap()) >= min_level)
+                    .collect();
                 edges.insert(idx, neighbours);
             }
         }
-
         Self { nodes, edges }
     }
 }
 
-struct Node {
-    data: char,
-}
-
-impl Node {
-    fn new(data: char) -> Self {
-        Self { data }
-    }
-}
-
 fn get_level(value: char) -> usize {
-    1 + match value {
+    1 + match value {  // +1 makes sure that we don't get underflow errors
         'S' => 0,
         'E' => LEVELS.len() - 1,
         c => LEVELS.chars().position(|d| c == d).unwrap(),
