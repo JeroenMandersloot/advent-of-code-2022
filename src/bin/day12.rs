@@ -1,7 +1,5 @@
 use std::collections::{HashMap, HashSet};
 
-const LEVELS: &str = "abcdefghijklmnopqrstuvwxyz";
-
 struct Graph {
     nodes: Vec<char>,
     edges: HashMap<usize, Vec<usize>>,
@@ -23,11 +21,7 @@ impl Graph {
         let queue: Vec<_> = (0..num_nodes).collect();
         distances[start] = 0;
         while visited.len() < num_nodes {
-            let current = queue
-                .iter()
-                .filter(|idx| !visited.contains(idx))
-                .min_by_key(|idx| distances.get(**idx))
-                .unwrap();
+            let current = queue.iter().filter(|idx| !visited.contains(idx)).min_by_key(|idx| distances.get(**idx)).unwrap();
             visited.insert(current);
             let neighbours = self.edges.get(current).unwrap().iter().filter(|idx| !visited.contains(idx));
             for neighbour in neighbours {
@@ -67,10 +61,7 @@ impl Graph {
 
                 // Invert all edges because we perform our searches backwards.
                 let min_level = get_level(*nodes.get(idx).unwrap()) - 1;
-                let neighbours = candidates
-                    .into_iter()
-                    .filter(|i| get_level(*nodes.get(*i).unwrap()) >= min_level)
-                    .collect();
+                let neighbours = candidates.into_iter().filter(|i| get_level(*nodes.get(*i).unwrap()) >= min_level).collect();
                 edges.insert(idx, neighbours);
             }
         }
@@ -79,10 +70,11 @@ impl Graph {
 }
 
 fn get_level(value: char) -> usize {
+    let levels = "abcdefghijklmnopqrstuvwxyz";
     1 + match value {  // +1 makes sure that we don't get underflow errors
         'S' => 0,
-        'E' => LEVELS.len() - 1,
-        c => LEVELS.chars().position(|d| c == d).unwrap(),
+        'E' => levels.len() - 1,
+        c => levels.chars().position(|d| c == d).unwrap(),
     }
 }
 
