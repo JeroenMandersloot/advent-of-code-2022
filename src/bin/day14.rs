@@ -12,6 +12,9 @@ struct Cave {
 }
 
 impl Cave {
+    /// Function to print a visual representation of the current state of the
+    /// cave. This is not actually needed for computing the solution, but it's
+    /// fun to be able to see the cave with your own eyes :)
     fn draw(&self) {
         let mut drawing: String = String::from("");
         for y in 0..self.height() {
