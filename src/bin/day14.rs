@@ -20,11 +20,14 @@ fn solve(part: usize) -> usize {
             });
     }
 
+    // Keep track of the path, so we can start the next grain of sand just
+    // before the end of the previous grain's path rather than at the source.
+    let mut path = Vec::new();
     let height = *cave.iter().map(|(_, y)| y).max().unwrap();
     let source: (usize, usize) = (500, 0);
     let num_rocks = cave.len();
     while !cave.contains(&source)  {
-        let mut sand = source;
+        let mut sand = if path.is_empty() { source } else { path.pop().unwrap() };
         let mut done = false;
         while !done && sand.1 < height + 1 {
             done = true;
@@ -32,6 +35,7 @@ fn solve(part: usize) -> usize {
             for c in [x, x - 1, x + 1] {
                 let candidate = (c, y + 1);
                 if !cave.contains(&candidate) {
+                    path.push(sand);
                     sand = candidate;
                     done = false;
                     break;
