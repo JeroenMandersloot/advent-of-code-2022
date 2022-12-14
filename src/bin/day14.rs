@@ -1,9 +1,9 @@
 use std::cmp::{max, min};
 use std::collections::HashSet;
 
-fn solve(part2: bool) -> usize {
-    let input = aoc::io::get_input(14);
+fn solve(part: usize) -> usize {
     let mut cave = HashSet::new();
+    let input = aoc::io::get_input(14);
     for line in input.lines() {
         line.split(" -> ")
             .map(|coordinates| {
@@ -26,7 +26,7 @@ fn solve(part2: bool) -> usize {
     while !cave.contains(&source)  {
         let mut sand = source;
         let mut done = false;
-        while !done && sand.1 < height + 1{
+        while !done && sand.1 < height + 1 {
             done = true;
             let (x, y) = sand;
             for c in [x, x - 1, x + 1] {
@@ -38,13 +38,13 @@ fn solve(part2: bool) -> usize {
                 }
             }
         }
-        if sand.1 == height + 1 && !part2 { break }
+        if !done && part == 1 { break }
         cave.insert(sand);
     }
     cave.len() - num_rocks
 }
 
 fn main() {
-    println!("{}", solve(false));
-    println!("{}", solve(true));
+    println!("{}", solve(1));
+    println!("{}", solve(2));
 }
