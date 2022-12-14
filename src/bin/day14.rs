@@ -1,15 +1,9 @@
 use std::cmp::{max, min};
 
-use regex::Regex;
-
 type Pos = (usize, usize);
 
 #[derive(Debug, Clone, Eq, PartialEq)]
-enum Tile {
-    ROCK,
-    SAND,
-    AIR,
-}
+enum Tile { ROCK, SAND, AIR }
 
 struct Cave {
     chart: Vec<Vec<Tile>>,
@@ -23,17 +17,15 @@ impl Cave {
         for y in 0..self.height() {
             let row = &self.chart[y];
             for x in 0..self.width() {
-                let tile = &row[x];
-                drawing.push(match tile {
+                drawing.push(match row[x] {
                     Tile::ROCK => '#',
                     Tile::SAND => 'o',
                     Tile::AIR if (x, y) == self.source => '+',
-                    _ => ' ',
+                    Tile::AIR => ' ',
                 });
             }
             drawing.push('\n');
         }
-
         println!("{}", drawing);
     }
 
@@ -43,30 +35,13 @@ impl Cave {
     fn step(&mut self) {
         if let Some((x, y)) = self.active {
             self.active = None;
-
-            if x == self.width() - 1 {
-                let height = self.height();
-                for i in 0..height {
-                    let mut row = &mut self.chart[i];
-                    if i == height - 1 {
-                        row.push(Tile::ROCK);
-                    } else {
-                        row.push(Tile::AIR);
-                    }
-                }
-            }
-
-            if y == self.height() - 1 {
-                self.chart[y][x] = Tile::AIR;
-            } else {
-                let candidates = [x, x - 1, x + 1];
-                for candidate in candidates {
-                    if self.chart[y + 1][candidate] == Tile::AIR {
-                        self.chart[y][x] = Tile::AIR;
-                        self.chart[y + 1][candidate] = Tile::SAND;
-                        self.active = Some((candidate, y + 1));
-                        break;
-                    }
+            let candidates = [x, x - 1, x + 1];
+            for candidate in candidates {
+                if self.chart[y + 1][candidate] == Tile::AIR {
+                    self.chart[y][x] = Tile::AIR;
+                    self.chart[y + 1][candidate] = Tile::SAND;
+                    self.active = Some((candidate, y + 1));
+                    break;
                 }
             }
         } else if self.chart[self.source.1][self.source.0] == Tile::AIR {
@@ -76,7 +51,12 @@ impl Cave {
     }
 
     fn find_iter<'a>(&'a self, tile: &'a Tile) -> impl Iterator<Item=Pos> + '_ {
-        self.chart.iter().flatten().enumerate().filter(move |(_, t)| *t == tile).map(|(idx, _)| (idx % self.width(), idx / self.width()))
+        self.chart
+            .iter()
+            .flatten()
+            .enumerate()
+            .filter(move |(_, t)| *t == tile)
+            .map(|(idx, _)| (idx % self.width(), idx / self.width()))
     }
 }
 
@@ -90,31 +70,25 @@ fn build_cave() -> Cave {
                 (x.parse::<usize>().unwrap(), y.parse::<usize>().unwrap())
             })
             .reduce(|(x1, y1), (x2, y2)| {
-                if x1 == x2 {
+                for x in min(x1, x2)..(max(x1, x2) + 1) {
                     for y in min(y1, y2)..(max(y1, y2) + 1) {
-                        rocks.push((x1, y));
-                    }
-                } else if y1 == y2 {
-                    for x in min(x1, x2)..(max(x1, x2) + 1) {
-                        rocks.push((x, y1));
+                        rocks.push((x, y));
                     }
                 }
                 (x2, y2)
             });
     }
 
+    let source = (500, 0);
     let height = *rocks.iter().map(|(_, y)| y).max().unwrap() + 1;
-    let width = *rocks.iter().map(|(x, _)| x).max().unwrap() + 1;
-
+    let width = source.0 + height + 2;
     let mut chart = vec![vec![Tile::AIR; width]; height];
     for (x, y) in rocks {
         chart[y][x] = Tile::ROCK;
     }
-
     chart.push(vec![Tile::AIR; width]);
     chart.push(vec![Tile::ROCK; width]);
-
-    Cave { chart, active: None, source: (500, 0) }
+    Cave { chart, active: None, source }
 }
 
 fn part1() -> usize {
@@ -133,8 +107,6 @@ fn part2() -> usize {
         prev = cave.active;
         cave.step();
     }
-
-    cave.draw();
     cave.find_iter(&Tile::SAND).count()
 }
 
