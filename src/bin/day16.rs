@@ -4,8 +4,8 @@ use std::collections::{BTreeSet, HashMap};
 use regex::Regex;
 
 fn solve<'a>(
-    origin: &'a str,
-    valves: &'a HashMap<&str, usize>,
+    origin: &str,
+    valves: &HashMap<&'a str, usize>,
     distances: &HashMap<(&str, &str), usize>,
     minutes_remaining: usize,
     cache: &mut HashMap<BTreeSet<&'a str>, usize>,
@@ -89,13 +89,14 @@ fn part2(input: &str) -> usize {
     (1..num_travelers).map(|_| {
         let prev = cache.clone();
         prev.iter().enumerate().map(|(i, (opened, s))| {
+            if (i+1) % 1000 == 0 { println!("{}/{}", i+1, prev.len()) }
             solve("AA", &valves, &distances, 26, &mut cache, opened, *s)
         }).max().unwrap()
     }).last().unwrap()
 }
 
 fn main() {
-    let input = aoc::io::get_example(16);
+    let input = aoc::io::get_input(16);
     println!("{}", part1(&input));
     println!("{}", part2(&input));
 }
