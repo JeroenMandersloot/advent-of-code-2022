@@ -12,21 +12,29 @@ fn solve<'a>(
     distances: &'a HashMap<&str, HashMap<&str, usize>>,
     minutes_remaining: usize,
     cache: &mut HashMap<BTreeSet<&'a str>, usize>,
+    opened: &BTreeSet<&'a str>,
+    score: usize,
 ) -> usize {
-    if minutes_remaining <= 0 || valves.is_empty() {
-        0
+    let key = opened.clone();
+    let prev = match cache.get(&key) {
+        Some(v) => *v,
+        None => 0
+    };
+    cache.insert(key, max(score, prev));
+    if opened.len() == valves.len() {
+        score
     } else {
-        let solution = valves.into_iter().map(|(valve, flow)| {
+        valves.into_iter().filter(|(valve, _)| !opened.contains(**valve)).map(|(valve, flow)| {
+            let mut opened = opened.clone();
+            opened.insert(valve);
             let duration = distances.get(origin).unwrap().get(valve).unwrap() + 1;
-            let minutes_remaining = if duration > minutes_remaining { 0 } else { minutes_remaining - duration };
-            let mut valves = valves.clone();
-            valves.remove(valve);
-            flow * minutes_remaining + solve(valve, &valves, distances, minutes_remaining, cache)
-        }).max().unwrap();
-        if solution > 0 {
-            cache.insert(BTreeSet::from_iter(valves.clone().into_keys()), solution);
-        }
-        solution
+            if duration > minutes_remaining {
+                score
+            } else {
+                let minutes_remaining = minutes_remaining - duration;
+                solve(valve, &valves, distances, minutes_remaining, cache, &opened, score + flow * minutes_remaining)
+            }
+        }).max().unwrap()
     }
 }
 
@@ -67,7 +75,7 @@ fn distance_matrix<'a>(edges: &'a HashMap<&str, Vec<&str>>) -> HashMap<&'a str, 
 }
 
 fn parse() -> usize {
-    let input = aoc::io::get_example(16);
+    let input = aoc::io::get_input(16);
     let pattern = Regex::new(r"Valve ([A-Z]+) has flow rate=(\d+); tunnels? leads? to valves? ((?:[A-Z]+(?:, )?)+)").unwrap();
     let cms = pattern.captures_iter(&input);
     let mut edges = HashMap::new();
@@ -83,25 +91,27 @@ fn parse() -> usize {
     }
 
     let distances = distance_matrix(&edges);
+    let opened = BTreeSet::new();
     let mut cache = HashMap::new();
-    let score = solve("AA", &valves, &distances, 30, &mut cache);
+    // let score = solve("AA", &valves, &distances, 30, &mut cache, &opened, 0);
+    // let mut a = cache.into_iter().map(|(k, _)| k.into_iter().collect::<Vec<_>>().join(",")).collect::<Vec<_>>();
+    // a.sort();
+    // println!("{:?}", a.join(";"));
 
-    // let travelers = ["you", "elephant"];
-    // let mut score = 0;
-    // for _ in travelers {
-    //     if cache.is_empty() {
-    //         score = solve("AA", &valves, &distances, 26, &mut cache)
-    //     } else {
-    //         let prev = cache.clone();
-    //         score = prev.iter().map(|(remaining, s)| {
-    //             let a = remaining.iter().map(|valve| (*valve, *valves.get(valve).unwrap())).collect();
-    //             let r = solve("AA", &a, &distances, 26, &mut cache);
-    //
-    //             dbg!((s, r, &a));
-    //             r
-    //         }).max().unwrap()
-    //     }
-    // }
+    let now = Instant::now();
+    let travelers = ["you", "elephant"];
+    let mut score = 0;
+    for _ in travelers {
+        if cache.is_empty() {
+            score = solve("AA", &valves, &distances, 26, &mut cache, &opened, 0);
+        } else {
+            let prev = cache.clone();
+            score = prev.iter().enumerate().map(|(i, (opened, s))| {
+                println!("{}/{} ({:?})", i, prev.len() - 1, now.elapsed());
+                solve("AA", &valves, &distances, 26, &mut cache, opened, *s)
+            }).max().unwrap()
+        }
+    }
 
     score
 }
