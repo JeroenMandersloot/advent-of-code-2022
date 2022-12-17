@@ -13,11 +13,12 @@ fn simulate<'a>(
     cache: &mut HashMap<BTreeSet<&'a str>, usize>,
 ) -> usize {
     let key = opened.clone();
-    let prev = match cache.get(&key) {
+    let best = max(score, match cache.get(&key) {
         Some(v) => *v,
         None => 0
-    };
-    cache.insert(key, max(score, prev));
+    });
+    cache.insert(key, best);
+
     if opened.len() == valves.len() {
         score
     } else {
@@ -91,5 +92,5 @@ fn solve(input: &str, time: usize, num_travelers: usize) -> usize {
 fn main() {
     let input = aoc::io::get_input(16);
     println!("{}", solve(&input, 30, 1));
-    println!("{}", solve(&input, 26, 2));  // Takes ~1 minute
+    println!("{}", solve(&input, 26, 2));  // Takes ~2 minutes
 }
