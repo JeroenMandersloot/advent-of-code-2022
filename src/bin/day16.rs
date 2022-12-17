@@ -1,101 +1,33 @@
 use std::cmp::{max, min};
-use std::collections::{HashMap, HashSet};
+use std::collections::{BTreeSet, HashMap, HashSet};
 use std::hash::{Hash, Hasher};
 use std::ops::Deref;
 use std::time::Instant;
 
 use regex::Regex;
 
-fn combinations<'a, T>(vec: &'a Vec<&T>) -> Vec<(&'a T, &'a T)> {
-    let mut res = Vec::new();
-    if !vec.is_empty() {
-        for i in 0..(vec.len()-1) {
-            for j in i..vec.len() {
-                if i != j {
-                    res.push((vec[i], vec[j]));
-                }
-            }
-        }
-    }
-    res
-}
-
-fn calc(origin: &str, valves: &HashMap<&str, usize>, distances: &HashMap<&str, HashMap<&str, usize>>, minutes_remaining: usize) -> usize {
+fn solve<'a>(
+    origin: &'a str,
+    valves: &HashMap<&'a str, usize>,
+    distances: &'a HashMap<&str, HashMap<&str, usize>>,
+    minutes_remaining: usize,
+    cache: &mut HashMap<BTreeSet<&'a str>, usize>,
+) -> usize {
     if minutes_remaining <= 0 || valves.is_empty() {
-        return 0;
-    }
-    valves.iter().map(|(valve, flow)| {
-        let duration = distances.get(origin).unwrap().get(valve).unwrap() + 1;
-        if duration > minutes_remaining {
-            0
-        } else {
-            let minutes_remaining = minutes_remaining - duration;
+        0
+    } else {
+        let solution = valves.into_iter().map(|(valve, flow)| {
+            let duration = distances.get(origin).unwrap().get(valve).unwrap() + 1;
+            let minutes_remaining = if duration > minutes_remaining { 0 } else { minutes_remaining - duration };
             let mut valves = valves.clone();
             valves.remove(valve);
-            if origin == "AA" {
-                println!("AA -> {}: {} * {}", valve, minutes_remaining, flow)
-            }
-            flow * minutes_remaining + calc(valve, &valves, distances, minutes_remaining)
+            flow * minutes_remaining + solve(valve, &valves, distances, minutes_remaining, cache)
+        }).max().unwrap();
+        if solution > 0 {
+            cache.insert(BTreeSet::from_iter(valves.clone().into_keys()), solution);
         }
-    }).max().unwrap()
-}
-
-fn calc_duo<'a>(
-    origin: (&str, &str),
-    valves: &HashMap<&str, usize>,
-    distances: &HashMap<&str, HashMap<&str, usize>>,
-    minutes_remaining: (usize, usize),
-    cache: &mut HashMap<((String, String), Vec<String>, (usize, usize)), usize>
-) -> usize {
-    let o_key = (String::from(origin.0), String::from(origin.1));
-    let key = (o_key, valves.keys().map(|k| String::from(k.deref())).collect::<Vec<_>>(), minutes_remaining);
-    if cache.contains_key(&key) {
-        return *cache.get(&key).unwrap();
+        solution
     }
-    if valves.is_empty() {
-        return 0;
-    }
-    if valves.len() == 1 {
-        return max(
-            calc(origin.0, valves, distances, minutes_remaining.0),
-            calc(origin.1, valves, distances, minutes_remaining.1)
-        );
-    }
-
-    let now = Instant::now();
-
-    // let mut valves = valves.clone();
-    let nodes = valves.keys().map(|k| k.deref()).collect::<Vec<_>>();
-    let mut a = 0;
-    for i in 0..nodes.len() {
-        for j in 0..nodes.len() {
-            if i == j {
-                continue;
-            }
-            if origin == ("AA", "AA") {
-                println!("({}, {}) out of {} ({:?})", i, j, nodes.len(), now.elapsed());
-            }
-            let you = nodes[i];
-            let elephant = nodes[j];
-            let flow0 = valves.get(you).unwrap();
-            let flow1 = valves.get(elephant).unwrap();
-            let mut valves = valves.clone();
-            valves.remove(you);
-            valves.remove(elephant);
-            let duration0 = distances.get(&origin.0).unwrap().get(you).unwrap() + 1;
-            let duration1 = distances.get(&origin.1).unwrap().get(elephant).unwrap() + 1;
-            let minutes_remaining_0 = if duration0 > minutes_remaining.0 { 0 } else { minutes_remaining.0 - duration0 };
-            let minutes_remaining_1 = if duration1 > minutes_remaining.1 { 0 } else { minutes_remaining.1 - duration1 };
-            let minutes_remaining = (minutes_remaining_0, minutes_remaining_1);
-            let res = flow0 * minutes_remaining_0 +
-                flow1 * minutes_remaining_1 +
-                calc_duo((you, elephant), &valves, distances, minutes_remaining, cache);
-            a = max(a, res);
-        }
-    }
-
-    cache.insert(key, a);
-    a
 }
 
 fn distance_matrix<'a>(edges: &'a HashMap<&str, Vec<&str>>) -> HashMap<&'a str, HashMap<&'a str, usize>> {
@@ -135,12 +67,12 @@ fn distance_matrix<'a>(edges: &'a HashMap<&str, Vec<&str>>) -> HashMap<&'a str, 
 }
 
 fn parse() -> usize {
+    let input = aoc::io::get_example(16);
+    let pattern = Regex::new(r"Valve ([A-Z]+) has flow rate=(\d+); tunnels? leads? to valves? ((?:[A-Z]+(?:, )?)+)").unwrap();
+    let cms = pattern.captures_iter(&input);
     let mut edges = HashMap::new();
     let mut valves = HashMap::new();
-    let input = aoc::io::get_input(16);
-    let pattern = Regex::new(r"Valve ([A-Z]+) has flow rate=(\d+); tunnels? leads? to valves? ((?:[A-Z]+(?:, )?)+)").unwrap();
-    for line in input.lines() {
-        let captures = pattern.captures_iter(line).next().unwrap();
+    for captures in cms {
         let mut matches = captures.iter().skip(1).map(|m| m.unwrap().as_str());
         let origin = matches.next().unwrap();
         let flow = matches.next().unwrap().parse::<usize>().unwrap();
@@ -151,10 +83,27 @@ fn parse() -> usize {
     }
 
     let distances = distance_matrix(&edges);
-    // calc("AA", &valves, &distances, 30)
-
     let mut cache = HashMap::new();
-    calc_duo(("AA", "AA"), &valves, &distances, (26, 26), &mut cache)
+    let score = solve("AA", &valves, &distances, 30, &mut cache);
+
+    // let travelers = ["you", "elephant"];
+    // let mut score = 0;
+    // for _ in travelers {
+    //     if cache.is_empty() {
+    //         score = solve("AA", &valves, &distances, 26, &mut cache)
+    //     } else {
+    //         let prev = cache.clone();
+    //         score = prev.iter().map(|(remaining, s)| {
+    //             let a = remaining.iter().map(|valve| (*valve, *valves.get(valve).unwrap())).collect();
+    //             let r = solve("AA", &a, &distances, 26, &mut cache);
+    //
+    //             dbg!((s, r, &a));
+    //             r
+    //         }).max().unwrap()
+    //     }
+    // }
+
+    score
 }
 
 fn main() {
