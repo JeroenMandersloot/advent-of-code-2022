@@ -1,8 +1,5 @@
-use std::cmp::{max, min};
-use std::collections::{BTreeSet, HashMap, HashSet};
-use std::hash::{Hash, Hasher};
-use std::ops::Deref;
-use std::time::Instant;
+use std::cmp::max;
+use std::collections::{BTreeSet, HashMap};
 
 use regex::Regex;
 
@@ -39,7 +36,7 @@ fn solve<'a>(
     }
 }
 
-fn parse(input: &String) -> (HashMap<&str, usize>, HashMap<(&str, &str), usize>) {
+fn parse(input: &str) -> (HashMap<&str, usize>, HashMap<(&str, &str), usize>) {
     let pattern = Regex::new(r"Valve ([A-Z]+) has flow rate=(\d+); tunnels? leads? to valves? ((?:[A-Z]+(?:, )?)+)").unwrap();
     let cms = pattern.captures_iter(&input);
     let mut edges = HashMap::new();
@@ -76,14 +73,14 @@ fn parse(input: &String) -> (HashMap<&str, usize>, HashMap<(&str, &str), usize>)
     (valves, distances)
 }
 
-fn part1(input: &String) -> usize {
+fn part1(input: &str) -> usize {
     let opened = BTreeSet::new();
     let mut cache = HashMap::new();
     let (valves, distances) = parse(input);
     solve("AA", &valves, &distances, 30, &mut cache, &opened, 0)
 }
 
-fn part2(input: &String) -> usize {
+fn part2(input: &str) -> usize {
     let num_travelers = 2;
     let opened = BTreeSet::new();
     let mut cache = HashMap::new();
@@ -92,7 +89,6 @@ fn part2(input: &String) -> usize {
     (1..num_travelers).map(|_| {
         let prev = cache.clone();
         prev.iter().enumerate().map(|(i, (opened, s))| {
-            println!("{}/{})", i, prev.len() - 1);
             solve("AA", &valves, &distances, 26, &mut cache, opened, *s)
         }).max().unwrap()
     }).last().unwrap()
