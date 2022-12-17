@@ -8,8 +8,8 @@ use regex::Regex;
 
 fn solve<'a>(
     origin: &'a str,
-    valves: &HashMap<&'a str, usize>,
-    distances: &'a HashMap<&str, HashMap<&str, usize>>,
+    valves: &'a HashMap<&str, usize>,
+    distances: &HashMap<(&str, &str), usize>,
     minutes_remaining: usize,
     cache: &mut HashMap<BTreeSet<&'a str>, usize>,
     opened: &BTreeSet<&'a str>,
@@ -27,7 +27,8 @@ fn solve<'a>(
         valves.into_iter().filter(|(valve, _)| !opened.contains(**valve)).map(|(valve, flow)| {
             let mut opened = opened.clone();
             opened.insert(valve);
-            let duration = distances.get(origin).unwrap().get(valve).unwrap() + 1;
+            let key = (origin, valve as &str);
+            let duration = distances.get(&key).unwrap() + 1;
             if duration > minutes_remaining {
                 score
             } else {
@@ -38,44 +39,7 @@ fn solve<'a>(
     }
 }
 
-fn distance_matrix<'a>(edges: &'a HashMap<&str, Vec<&str>>) -> HashMap<&'a str, HashMap<&'a str, usize>> {
-    let num_nodes = edges.len();
-    let mut matrix = HashMap::new();
-    for start in edges.keys() {
-        let mut distances = HashMap::new();
-        let mut visited = HashSet::new();
-        let queue: Vec<_> = edges.keys().collect();
-        distances.insert(*start, 0);
-        while visited.len() < num_nodes {
-            let current = **queue
-                .iter()
-                .filter(|key| !visited.contains(***key))
-                .min_by_key(|key| match distances.get(***key) {
-                    Some(d) => *d,
-                    None => std::usize::MAX
-                })
-                .unwrap();
-            visited.insert(current);
-            let neighbours = edges.get(current).unwrap().iter().filter(|key| !visited.contains(**key));
-            for neighbour in neighbours {
-                if let Some(distance) = distances.get(current) {
-                    if let Some(d) = distances.get(neighbour) {
-                        if distance < d {
-                            distances.insert(*neighbour, *distance + 1);
-                        }
-                    } else {
-                        distances.insert(*neighbour, *distance + 1);
-                    }
-                }
-            }
-        }
-        matrix.insert(*start, distances);
-    }
-    matrix
-}
-
-fn parse() -> usize {
-    let input = aoc::io::get_input(16);
+fn parse(input: &String) -> (HashMap<&str, usize>, HashMap<(&str, &str), usize>) {
     let pattern = Regex::new(r"Valve ([A-Z]+) has flow rate=(\d+); tunnels? leads? to valves? ((?:[A-Z]+(?:, )?)+)").unwrap();
     let cms = pattern.captures_iter(&input);
     let mut edges = HashMap::new();
@@ -90,32 +54,52 @@ fn parse() -> usize {
         edges.insert(origin, matches.next().unwrap().split(", ").collect::<Vec<_>>());
     }
 
-    let distances = distance_matrix(&edges);
-    let opened = BTreeSet::new();
-    let mut cache = HashMap::new();
-    // let score = solve("AA", &valves, &distances, 30, &mut cache, &opened, 0);
-    // let mut a = cache.into_iter().map(|(k, _)| k.into_iter().collect::<Vec<_>>().join(",")).collect::<Vec<_>>();
-    // a.sort();
-    // println!("{:?}", a.join(";"));
-
-    let now = Instant::now();
-    let travelers = ["you", "elephant"];
-    let mut score = 0;
-    for _ in travelers {
-        if cache.is_empty() {
-            score = solve("AA", &valves, &distances, 26, &mut cache, &opened, 0);
-        } else {
-            let prev = cache.clone();
-            score = prev.iter().enumerate().map(|(i, (opened, s))| {
-                println!("{}/{} ({:?})", i, prev.len() - 1, now.elapsed());
-                solve("AA", &valves, &distances, 26, &mut cache, opened, *s)
-            }).max().unwrap()
+    let mut stack = Vec::new();
+    for (start, neighbours) in &edges {
+        for neighbour in neighbours {
+            stack.push((*start, *neighbour, 1usize));
         }
     }
 
-    score
+    let mut distances = HashMap::new();
+    while !stack.is_empty() {
+        let (start, end, distance) = stack.pop().unwrap();
+        let key = (start, end);
+        if !distances.contains_key(&key) || distance < *distances.get(&key).unwrap() {
+            distances.insert(key, distance);
+            let neighbours = edges.get(&end).unwrap();
+            for neighbour in neighbours {
+                stack.push((start, neighbour, distance + 1));
+            }
+        }
+    }
+    (valves, distances)
+}
+
+fn part1(input: &String) -> usize {
+    let opened = BTreeSet::new();
+    let mut cache = HashMap::new();
+    let (valves, distances) = parse(input);
+    solve("AA", &valves, &distances, 30, &mut cache, &opened, 0)
+}
+
+fn part2(input: &String) -> usize {
+    let num_travelers = 2;
+    let opened = BTreeSet::new();
+    let mut cache = HashMap::new();
+    let (valves, distances) = parse(&input);
+    solve("AA", &valves, &distances, 26, &mut cache, &opened, 0);
+    (1..num_travelers).map(|_| {
+        let prev = cache.clone();
+        prev.iter().enumerate().map(|(i, (opened, s))| {
+            println!("{}/{})", i, prev.len() - 1);
+            solve("AA", &valves, &distances, 26, &mut cache, opened, *s)
+        }).max().unwrap()
+    }).last().unwrap()
 }
 
 fn main() {
-    println!("{}", parse());
+    let input = aoc::io::get_example(16);
+    println!("{}", part1(&input));
+    println!("{}", part2(&input));
 }
