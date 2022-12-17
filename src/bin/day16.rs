@@ -3,14 +3,14 @@ use std::collections::{BTreeSet, HashMap};
 
 use regex::Regex;
 
-fn solve<'a>(
+fn simulate<'a>(
     origin: &str,
     valves: &HashMap<&'a str, usize>,
     distances: &HashMap<(&str, &str), usize>,
     minutes_remaining: usize,
-    cache: &mut HashMap<BTreeSet<&'a str>, usize>,
     opened: &BTreeSet<&'a str>,
     score: usize,
+    cache: &mut HashMap<BTreeSet<&'a str>, usize>,
 ) -> usize {
     let key = opened.clone();
     let prev = match cache.get(&key) {
@@ -30,7 +30,7 @@ fn solve<'a>(
                 score
             } else {
                 let minutes_remaining = minutes_remaining - duration;
-                solve(valve, &valves, distances, minutes_remaining, cache, &opened, score + flow * minutes_remaining)
+                simulate(valve, &valves, distances, minutes_remaining, &opened, score + flow * minutes_remaining, cache)
             }
         }).max().unwrap()
     }
@@ -54,7 +54,7 @@ fn parse(input: &str) -> (HashMap<&str, usize>, HashMap<(&str, &str), usize>) {
     let mut stack = Vec::new();
     for (start, neighbours) in &edges {
         for neighbour in neighbours {
-            stack.push((*start, *neighbour, 1usize));
+            stack.push((*start, *neighbour, 1));
         }
     }
 
@@ -73,30 +73,23 @@ fn parse(input: &str) -> (HashMap<&str, usize>, HashMap<(&str, &str), usize>) {
     (valves, distances)
 }
 
-fn part1(input: &str) -> usize {
-    let opened = BTreeSet::new();
-    let mut cache = HashMap::new();
-    let (valves, distances) = parse(input);
-    solve("AA", &valves, &distances, 30, &mut cache, &opened, 0)
-}
-
-fn part2(input: &str) -> usize {
-    let num_travelers = 2;
-    let opened = BTreeSet::new();
-    let mut cache = HashMap::new();
+fn solve(input: &str, time: usize, num_travelers: usize) -> usize {
     let (valves, distances) = parse(&input);
-    solve("AA", &valves, &distances, 26, &mut cache, &opened, 0);
-    (1..num_travelers).map(|_| {
+    let mut cache = HashMap::new();
+    cache.insert(BTreeSet::new(), 0);
+    let mut score = 0;
+    for _ in 0..num_travelers {
         let prev = cache.clone();
-        prev.iter().enumerate().map(|(i, (opened, s))| {
-            if (i+1) % 1000 == 0 { println!("{}/{}", i+1, prev.len()) }
-            solve("AA", &valves, &distances, 26, &mut cache, opened, *s)
-        }).max().unwrap()
-    }).last().unwrap()
+        score = prev.iter().enumerate().map(|(i, (opened, s))| {
+            if (i + 1) % 1000 == 0 { println!("{}/{}", i + 1, prev.len()) }
+            simulate("AA", &valves, &distances, time, opened, *s, &mut cache)
+        }).max().unwrap();
+    }
+    score
 }
 
 fn main() {
     let input = aoc::io::get_input(16);
-    println!("{}", part1(&input));
-    println!("{}", part2(&input));
+    println!("{}", solve(&input, 30, 1));
+    println!("{}", solve(&input, 26, 2));  // Takes ~1 minute
 }
