@@ -1,10 +1,5 @@
 use std::collections::HashSet;
 
-fn get_neighbours(point: (i32, i32, i32)) -> [(i32, i32, i32); 6] {
-    let (x, y, z) = point;
-    [(x - 1, y, z), (x + 1, y, z), (x, y - 1, z), (x, y + 1, z), (x, y, z - 1), (x, y, z + 1)]
-}
-
 fn parse(input: String) -> HashSet<(i32, i32, i32)> {
     let mut grid = HashSet::new();
     for line in input.lines() {
@@ -13,6 +8,11 @@ fn parse(input: String) -> HashSet<(i32, i32, i32)> {
         }
     }
     grid
+}
+
+fn get_neighbours(point: (i32, i32, i32)) -> [(i32, i32, i32); 6] {
+    let (x, y, z) = point;
+    [(x - 1, y, z), (x + 1, y, z), (x, y - 1, z), (x, y + 1, z), (x, y, z - 1), (x, y, z + 1)]
 }
 
 fn part1(grid: &HashSet<(i32, i32, i32)>) -> usize {
