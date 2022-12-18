@@ -10,31 +10,29 @@ fn simulate<'a>(
     minutes_remaining: usize,
     opened: &BTreeSet<&'a str>,
     score: usize,
-    cache: &mut HashMap<BTreeSet<&'a str>, usize>,
-) -> usize {
-    let key = opened.clone();
-    let best = max(score, match cache.get(&key) {
-        Some(v) => *v,
-        None => 0
-    });
-    cache.insert(key, best);
-
-    if opened.len() == valves.len() {
-        score
-    } else {
-        valves.into_iter().filter(|(valve, _)| !opened.contains(**valve)).map(|(valve, flow)| {
+) -> HashMap<BTreeSet<&'a str>, usize> {
+    let mut options: HashMap<BTreeSet<&str>, usize> = HashMap::new();
+    options.insert(opened.clone(),score);
+    for (valve, flow) in valves {
+        if !opened.contains(valve) {
             let mut opened = opened.clone();
             opened.insert(valve);
             let key = (origin, valve as &str);
             let duration = distances.get(&key).unwrap() + 1;
-            if duration > minutes_remaining {
-                score
-            } else {
+            if duration <= minutes_remaining {
                 let minutes_remaining = minutes_remaining - duration;
-                simulate(valve, &valves, distances, minutes_remaining, &opened, score + flow * minutes_remaining, cache)
+                let results = simulate(valve, &valves, distances, minutes_remaining, &opened, score + flow * minutes_remaining);
+                for (opened, score) in results {
+                    let previous = match options.get(&opened) {
+                        Some(score) => *score,
+                        None => 0
+                    };
+                    options.insert(opened, max(previous, score));
+                }
             }
-        }).max().unwrap()
+        }
     }
+    return options;
 }
 
 fn parse(input: &str) -> (HashMap<&str, usize>, HashMap<(&str, &str), usize>) {
@@ -74,23 +72,23 @@ fn parse(input: &str) -> (HashMap<&str, usize>, HashMap<(&str, &str), usize>) {
     (valves, distances)
 }
 
-fn solve(input: &str, time: usize, num_travelers: usize) -> usize {
+fn solve(input: &str, time: usize, elephant: bool) -> usize {
     let (valves, distances) = parse(&input);
-    let mut cache = HashMap::new();
-    cache.insert(BTreeSet::new(), 0);
-    let mut score = 0;
-    for _ in 0..num_travelers {
-        let prev = cache.clone();
-        score = prev.iter().enumerate().map(|(i, (opened, s))| {
-            if (i + 1) % 1000 == 0 { println!("{}/{}", i + 1, prev.len()) }
-            simulate("AA", &valves, &distances, time, opened, *s, &mut cache)
-        }).max().unwrap();
+    let opened = BTreeSet::new();
+    let you = simulate("AA", &valves, &distances, time, &opened, 0);
+    if elephant {  // Part 2
+        you.iter().map(|(ignore, score)| {
+            let valves = valves.iter().filter(|(valve, _)| !ignore.contains(*valve)).map(|(v, f)| (*v, *f)).collect();
+            let result = simulate("AA", &valves, &distances, time, &opened, 0);
+            score + *result.iter().map(|(_, s)| s).max().unwrap()
+        }).max().unwrap()
+    } else {  // Part 1
+        *you.iter().map(|(_, score)| score).max().unwrap()
     }
-    score
 }
 
 fn main() {
     let input = aoc::io::get_input(16);
-    println!("{}", solve(&input, 30, 1));
-    println!("{}", solve(&input, 26, 2));  // Takes ~2 minutes
+    println!("{}", solve(&input, 30, false));
+    println!("{}", solve(&input, 26, true));  // Takes ~2 minutes
 }
