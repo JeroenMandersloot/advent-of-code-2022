@@ -9,8 +9,7 @@ enum Job {
 }
 
 fn get_or_compute(monkey: &str, cache: &mut HashMap<String, Job>) -> f64 {
-    let job = cache.get(monkey).unwrap().clone();
-    match job {
+    match cache.get(monkey).unwrap().clone() {
         Job::NUMBER(number) => number,
         Job::OPERATION(op) => {
             if let [a, operator, b] = op.split(" ").collect::<Vec<_>>()[..] {
@@ -54,8 +53,8 @@ fn part2(input: &str, is_example: bool) -> u64 {
     let operands = Regex::new(r"root: (.+) [*/+-] (.+)").unwrap().captures_iter(input).next().unwrap().iter().skip(1).flatten().map(|m| m.as_str()).collect::<Vec<_>>();
     let a = operands[0];
     let b = operands[1];
-    let mut min = Regex::new(r"humn: (\d+)").unwrap().captures_iter(input).next().unwrap().iter().skip(1).next().unwrap().unwrap().as_str().parse::<u64>().unwrap();
-    let mut max = 3500000000000u64;
+    let mut min = 1;
+    let mut max = 10000000000000;
     loop {
         let current = (min + max) / 2;
         let mut cache = parse(&input);
