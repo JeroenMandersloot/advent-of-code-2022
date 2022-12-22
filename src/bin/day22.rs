@@ -6,12 +6,12 @@ type Grid = HashMap<(i32, i32), Option<bool>>;
 
 
 fn parse(input: &str) -> (Grid, Vec<&str>) {
-    let width = input.lines().map(|line| line.len()).max().unwrap();
     let height = input.lines().count() - 2;
+    let width = input.lines().take(height).map(|line| line.len()).max().unwrap();
     let mut grid = HashMap::new();
 
     for (y, line) in input.lines().enumerate().take(height) {
-        let line = format!("{:width$}", line, width = width).chars().collect::<String>();
+        let line = format!("{:width$}", line, width = width + 1).chars().collect::<String>();
         for (x, c) in line.chars().enumerate() {
             grid.insert((x as i32, y as i32), match c {
                 ' ' => None,
