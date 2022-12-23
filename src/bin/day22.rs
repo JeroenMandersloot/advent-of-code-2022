@@ -5,6 +5,7 @@ use std::ops::{Index, Rem};
 use regex::Regex;
 
 type Pos = (i32, i32);
+type Adjacency = HashMap<(Pos, Facing), (Pos, Facing)>;
 
 #[derive(Copy, Clone, Debug, PartialOrd, PartialEq, Ord, Eq, Hash)]
 enum Facing {
@@ -45,94 +46,109 @@ fn step(pos: Pos, facing: Facing) -> Pos {
     }
 }
 
-// fn step_wrap(pos: Pos, facing: Facing, width: i32, height: i32) -> Pos {
-//     let (x, y) = step(pos, facing);
-//     (x.rem_euclid(width), y.rem_euclid(height))
-// }
-//
-// fn step_safe(pos: Pos, facing: Facing, width: i32, height: i32) -> Option<Pos> {
-//     let (x, y) = step(pos, facing);
-//     if x < 0 || x >= width || y < 0 || y >= height {
-//         None
-//     } else {
-//         Some((x, y))
-//     }
-// }
-
-#[derive(Debug, Clone, PartialEq)]
-struct Side {
-    layout: String,
+fn step_safe(pos: Pos, facing: Facing, width: i32, height: i32) -> Option<Pos> {
+    let (x, y) = step(pos, facing);
+    if x < 0 || x >= width || y < 0 || y >= height {
+        None
+    } else {
+        Some((x, y))
+    }
 }
 
-impl Side {
-    fn dim(&self) -> usize {
-        (self.layout.len() as f64).sqrt() as usize
+
+#[derive(Debug)]
+struct Cube {
+    sides: HashMap<(i32, i32), String>,
+}
+
+impl Cube {
+    fn dim(&self) -> i32 {
+        (self.sides.values().next().unwrap().len() as f32).sqrt() as i32
     }
 
     fn get(&self, pos: Pos) -> Option<char> {
         let (x, y) = pos;
-        let idx = y * (self.dim() as i32) + x;
-        self.layout.chars().nth(idx as usize)
-    }
-}
-
-impl Display for Side {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        let res = self.layout.chars().collect::<Vec<_>>().chunks(4).map(|c| c.iter().collect::<String>()).collect::<Vec<_>>().join("\n");
-        write!(f, "{}", res)
-    }
-}
-
-#[derive(Debug)]
-struct Cube {
-    sides: HashMap<(i32, i32), Side>,
-}
-
-impl Cube {
-    fn width(&self) -> i32 {
-        *self.sides.keys().map(|(x, _)| x).max().unwrap() + 1
+        let dim = self.dim();
+        let sx = x / dim;
+        let sy = y / dim;
+        let idx = y.rem_euclid(dim) * dim + x.rem_euclid(dim);
+        self.sides.get(&(sx, sy)).unwrap().chars().nth(idx as usize)
     }
 
-    fn height(&self) -> i32 {
-        *self.sides.keys().map(|(_, y)| y).max().unwrap() + 1
-    }
+    fn step(&self, pos: Pos, facing: Facing, adj: &Adjacency) -> (Pos, Facing) {
+        let (x, y) = pos;
+        let dim = self.dim();
+        let sx = x / dim;
+        let sy = y / dim;
+        let nx = x.rem_euclid(dim);
+        let ny = y.rem_euclid(dim);
+        let (candidate, f) = match step_safe((nx, ny), facing, self.dim(), self.dim()) {
+            Some(_) => (step(pos, facing), facing),
+            None => {
+                let ((nsx, nsy), f) = *adj.get(&((sx, sy), facing)).unwrap();
+                let d = dim - 1;
+                let (nnx, nny) = match (facing, f) {
+                    (Facing::RIGHT, Facing::RIGHT) => (0, ny),      
+                    (Facing::RIGHT, Facing::DOWN)  => (d - ny, 0),  
+                    (Facing::RIGHT, Facing::LEFT)  => (d, d - ny),  
+                    (Facing::RIGHT, Facing::UP)    => (ny, d),      // Checked
+                    (Facing::DOWN, Facing::RIGHT)  => (0, d - nx),  
+                    (Facing::DOWN, Facing::DOWN)   => (nx, 0),      
+                    (Facing::DOWN, Facing::LEFT)   => (d, nx),      // Checked
+                    (Facing::DOWN, Facing::UP)     => (d - nx, d),  
+                    (Facing::LEFT, Facing::RIGHT)  => (0, d - ny),  
+                    (Facing::LEFT, Facing::DOWN)   => (ny, 0),      // Checked
+                    (Facing::LEFT, Facing::LEFT)   => (d, ny),      
+                    (Facing::LEFT, Facing::UP)     => (d - ny, d),  
+                    (Facing::UP, Facing::RIGHT)    => (0, nx),      
+                    (Facing::UP, Facing::DOWN)     => (d - nx, 0),  
+                    (Facing::UP, Facing::LEFT)     => (d, nx),      
+                    (Facing::UP, Facing::UP)       => (nx, d),      
+                };
 
-    fn find(&self, side: &Side) -> Option<Pos> {
-        self.sides.iter().filter(|(_, s)| side == *s).map(|(&pos, _)| pos).next()
-    }
+                ((nsx * dim + nnx, nsy * dim + nny), f)
+            }
+        };
 
-    fn get_adjacent_side(&self, pos: Pos, facing: Facing, cache: &mut HashMap<(Pos, Facing), Pos>, path: &mut Vec<Pos>) -> Option<Pos> {
-        let cache_key = (pos, facing);
-        if cache.contains_key(&cache_key) {
-            return Some(*cache.get(&cache_key).unwrap());
+        if self.get(candidate).unwrap() == '.' {
+            (candidate, f)
+        } else {
+            (pos, facing)
         }
+    }
 
+    fn get_adjacent_side(&self, pos: Pos, facing: Facing, path: &mut Vec<Pos>) -> Option<(Pos, Facing)> {
         let candidate = step(pos, facing);
         if self.sides.contains_key(&candidate) {
-            cache.insert(cache_key, candidate);
-            return Some(candidate);
+            return Some((candidate, facing));
         }
 
         path.push(pos);
 
-        for f in [facing.turn_left(), facing.turn_right()] {
+        for (i, &f) in [facing.turn_left(), facing.turn_right()].iter().enumerate() {
             let a = step(pos, f);
             if self.sides.contains_key(&a) && !path.contains(&a) {
-                if let Some(res) = self.get_adjacent_side(a, facing, cache, path) {
+                if let Some((b, ff)) = self.get_adjacent_side(a, facing, path) {
                     path.pop();
-                    return Some(res);
+                    return Some((b, if i == 0 { ff.turn_left() } else { ff.turn_right() }));
                 }
             }
         }
 
         let opposite = step(pos, facing.turn_around());
         if self.sides.contains_key(&opposite) && !path.contains(&opposite) {
-            for facing in [facing.turn_left(), facing.turn_right(), facing.turn_around()] {
+            for (i, &facing) in [facing.turn_left(), facing.turn_right(), facing.turn_around()].iter().enumerate() {
                 let a = step(opposite, facing);
                 if self.sides.contains_key(&a) && !path.contains(&a) {
-                    if let Some(res) = self.get_adjacent_side(a, facing, cache, path) {
+                    if let Some((b, ff)) = self.get_adjacent_side(a, facing, path) {
                         path.pop();
-                        return Some(res);
+                        let ff = match i {
+                            0 => ff.turn_left(),
+                            1 => ff.turn_right(),
+                            2 => ff.turn_around(),
+                            _ => panic!()
+                        };
+                        return Some((b, ff));
                     }
                 }
             }
@@ -140,73 +156,24 @@ impl Cube {
         return None
     }
 
-    fn get_adjacency_matrix(&self) -> HashMap<Pos, Vec<Pos>> {
-        let mut cache = HashMap::new();
+    fn get_adjacency_matrix(&self) -> Adjacency {
         let mut res = HashMap::new();
         for pos in self.sides.keys() {
-            res.insert(*pos, Facing::all().iter().map(|&facing| {
+            for facing in Facing::all() {
                 let mut path = Vec::new();
-                self.get_adjacent_side(*pos, facing, &mut cache, &mut path).unwrap()
-            }).collect::<Vec<_>>());
+                res.insert((*pos, facing), self.get_adjacent_side(*pos, facing, &mut path).unwrap());
+            }
         }
         res
     }
-
-    // fn get_neighbour_safe(&self, pos: Pos, facing: Facing, visited: &mut HashSet<(Pos, Facing)>) -> Option<(Pos, Facing)> {
-    //     let cache_key = (pos, facing);
-    //     if visited.contains(&cache_key) {
-    //         return None;
-    //     }
-    //     let width = self.width();
-    //     let height = self.height();
-    //     if let Some(new) = step_safe(pos, facing, width, height) {
-    //         println!("{:?} -> {:?} facing {:?} ({:?})", pos, new, facing, self.sides.get(&new));
-    //         if let Some(_) = self.sides.get(&new) {
-    //             return Some((new, facing));
-    //         }
-    //     }
-    //
-    //     visited.insert(cache_key);
-    //
-    //     let mut v = visited.clone();
-    //     if let Some((new, _)) = self.get_neighbour_safe(pos, facing.turn_left(), &mut v) {
-    //         println!("Entered branch 1");
-    //         if let Some((res, facing)) = self.get_neighbour_safe(new, facing, &mut v) {
-    //             println!("Entered branch 1a");
-    //             return Some((res, facing.turn_right()));
-    //         }
-    //     }
-    //
-    //     let mut v = visited.clone();
-    //     if let Some((new, _)) = self.get_neighbour_safe(pos, facing.turn_right(), &mut v) {
-    //         println!("Entered branch 2");
-    //         if let Some((res, facing)) = self.get_neighbour_safe(new, facing, &mut v) {
-    //             println!("Entered branch 2a");
-    //             return Some((res, facing.turn_left()));
-    //         }
-    //     }
-    //
-    //     let mut v = visited.clone();
-    //     if let Some((new, _)) = self.get_neighbour_safe(pos, facing.turn_around(), &mut v) {
-    //         println!("Entered branch 3");
-    //         for f in [facing.turn_left(), facing.turn_right()] {
-    //             if let Some((new2, _)) = self.get_neighbour_safe(new, f, &mut v) {
-    //                 if let Some((res, facing)) = self.get_neighbour_safe(new2, f, &mut v) {
-    //                     return Some((res, facing.turn_around()));
-    //                 }
-    //             }
-    //         }
-    //     }
-    //
-    //     None
-    // }
-    //
-    // fn get_neighbour(&self, pos: Pos, facing: Facing) -> (&Side, Facing) {
-    //     let mut visited = HashSet::new();
-    //     let (new, facing) = self.get_neighbour_safe(pos, facing, &mut visited).unwrap();
-    //     (self.sides.get(&new).unwrap(), facing)
-    // }
 }
+
+// impl Display for Cube {
+//     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+//         let res = self.layout.chars().collect::<Vec<_>>().chunks(4).map(|c| c.iter().collect::<String>()).collect::<Vec<_>>().join("\n");
+//         write!(f, "{}", res)
+//     }
+// }
 
 
 fn parse(input: &str, dim: usize) -> (Cube, Vec<&str>) {
@@ -222,7 +189,7 @@ fn parse(input: &str, dim: usize) -> (Cube, Vec<&str>) {
         while x < width {
             let layout = input.lines().skip(y).take(dim).map(|line| line.chars().skip(x).take(dim).collect::<String>()).collect::<Vec<_>>().join("");
             if layout.trim().len() > 0 {
-                sides.insert((b as i32, a as i32), Side { layout });
+                sides.insert((b as i32, a as i32), layout);
             }
             b += 1;
             x = b * dim;
@@ -234,8 +201,15 @@ fn parse(input: &str, dim: usize) -> (Cube, Vec<&str>) {
     let cube = Cube { sides };
     let mut adj = cube.get_adjacency_matrix();
     for pos in cube.sides.keys() {
-        println!("{:?}", adj.get(pos).unwrap());
+        for facing in Facing::all() {
+            println!("{:?} --{:?}-> {:?}", pos, facing, adj.get(&(*pos, facing)).unwrap());
+        }
     }
+
+    // println!("{:?} (should be LEFT)", adj.get(&((3, 2), Facing::RIGHT)).unwrap());
+    // println!("{:?} (should be LEFT)", adj.get(&((3, 2), Facing::UP)).unwrap());
+    // println!("{:?} (should be UP)", adj.get(&((2, 2), Facing::DOWN)).unwrap());
+    // println!("{:?} (should be DOWN)", adj.get(&((2, 1), Facing::RIGHT)).unwrap());
 
     let instructions = Regex::new(r"(\d+|[RL])").unwrap().captures_iter(input.lines().last().unwrap()).map(|captures| captures.iter().next().unwrap().unwrap().as_str()).collect();
     (cube, instructions)
@@ -259,8 +233,48 @@ fn parse(input: &str, dim: usize) -> (Cube, Vec<&str>) {
 // }
 
 fn main() {
-    let input = aoc::io::get_example(22);
-    parse(&input, 4);
+    let input = aoc::io::get_input(22);
+    let (cube, instructions) = parse(&input, 50);
+
+
+    let adj = cube.get_adjacency_matrix();
+    let mut curr_pos = (cube.dim() * *cube.sides.keys().filter(|(x, y)| *y == 0).map(|(x, y)| x).min().unwrap(), 0);
+    let mut curr_facing = Facing::RIGHT;
+
+    println!("{:?}", curr_pos);
+    for instruction in instructions {
+        match instruction.parse::<i32>() {
+            Ok(num_steps) => {
+                for _ in 0..num_steps {
+                    let (a, b) = cube.step(curr_pos, curr_facing, &adj);
+                    if curr_pos == a {
+                        break;
+                    }
+                    curr_pos = a;
+                    curr_facing = b;
+                    println!("{:?} facing {:?}", curr_pos, curr_facing);
+                }
+            },
+            Err(_) => {
+                curr_facing = match instruction {
+                    "R" => curr_facing.turn_right(),
+                    "L" => curr_facing.turn_left(),
+                    _ => panic!()
+                };
+            }
+        }
+    }
+
+    let solution = 1000 * (curr_pos.1 + 1) + 4 * (curr_pos.0 + 1) + match curr_facing {
+        Facing::RIGHT => 0,
+        Facing::DOWN => 1,
+        Facing::LEFT => 2,
+        Facing::UP => 3,
+    };
+
+    println!("{solution}");
+
+
     // println!("{:?}", part1(&input));
     // println!("{}", part2(&input, is_example));
 }
